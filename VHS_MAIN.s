@@ -26,26 +26,31 @@ Demo:			;a4=VBR, a6=Custom Registers Base addr
 	LEA	PLANE_1,A0
 	LEA	COPPER\.BplPtrs+8,A1
 	BSR.W	PokePtrs
-	LEA	TEST_GRID,A0
+	LEA	PLANE_2,A0
 	LEA	COPPER\.BplPtrs+16,A1
 	BSR.W	PokePtrs
 	LEA	TEST_GRID,A0
+	LEA	-40(A0),A0
 	LEA	COPPER\.BplPtrs+24,A1
 	BSR.W	PokePtrs
 	LEA	TEST_GRID,A0
 	LEA	COPPER\.BplPtrs+32,A1
 	BSR.W	PokePtrs
-	LEA	PLANE_5,A0
-	;LEA	CRT_BORDER,A0
+	;LEA	PLANE_5,A0
+	LEA	OVERLAY,A0
 	LEA	COPPER\.BplPtrs+40,A1
 	BSR.W	PokePtrs
 
 	; #### CPU INTENSIVE TASKS BEFORE STARTING MUSIC
 	LEA	PLANE_0,A4	; FILLS A PLANE
-	BSR.W	__FILLRNDBG	; SOME DUMMY OPERATION...
+	BSR.W	__FILLSOLID	; SOME DUMMY OPERATION...
 
 	LEA	PLANE_1,A4	; FILLS A PLANE
-	BSR.W	__FILLRNDBG	; SOME DUMMY OPERATION...
+	BSR.W	__FILLRND		; SOME DUMMY OPERATION...
+
+	LEA	PLANE_2,A4	; FILLS A PLANE
+	BSR.W	__FILLRND		; SOME DUMMY OPERATION...
+
 	LEA	PLANE_5,A4	; FILLS A PLANE
 	MOVE.L	#$500000F5,D0
 	MOVE.L	#$AFFFFF0A,D1
@@ -62,17 +67,18 @@ Demo:			;a4=VBR, a6=Custom Registers Base addr
 	MOVE.L	#COPPER,COP1LC
 ;********************  main loop  ********************
 MainLoop:	
-	BTST	#6,$BFE001	; POTINP - LMB pressed?
-	BNE.S	.skip
-	MOVE.W	#$0A0F,$DFF180	; show rastertime left down to $12c
-	;BSR.W	__RND
-	;MOVE.W	D5,NOISE_SEED_0
-	ADD.B	#2,NOISE_SEED_0
-	.skip:
+	;BTST	#6,$BFE001	; POTINP - LMB pressed?
+	;BNE.S	.skip
+	;MOVE.W	#$0A0F,$DFF180	; show rastertime left down to $12c
+	;;BSR.W	__RND
+	;;MOVE.W	D5,NOISE_SEED_0
+	;ADD.B	#2,NOISE_SEED_0
+	;.skip:
+	BSR.W	__HW_DISPLACE
 
-	CLR.W	$100		; DEBUG | w 0 100 2
+	;CLR.W	$100		; DEBUG | w 0 100 2
 	CLR.L	D5
-	LEA	PLANE_0,A0
+	LEA	PLANE_1,A0
 	MOVE.B	NOISE_SEED_0,D5
 	BCLR	#0,D5
 	ADD.L	D5,A0
@@ -82,7 +88,7 @@ MainLoop:
 	MOVE.B	D5,NOISE_SEED_0
 
 	CLR.L	D5
-	LEA	PLANE_1,A0
+	LEA	PLANE_2,A0
 	MOVE.B	NOISE_SEED_1,D5
 	BCLR	#0,D5
 	ADD.L	D5,A0
@@ -90,14 +96,13 @@ MainLoop:
 	BSR.W	PokePtrs
 	MOVE.B	(A0),NOISE_SEED_1
 
-	BSR.W	__HW_DISPLACE
-
 	.WaitRasterCopper:
 	;MOVE.W	#$0A0F,$DFF180	; show rastertime left down to $12c
 	BTST	#$4,INTENAR+1
 	BNE.S	.WaitRasterCopper
 	;MOVE.W	#$0000,$DFF180	; show rastertime left down to $12c
 	MOVE.W	#$8010,INTENA
+
 	;*--- main loop end ---*
 	;BTST	#6,$BFE001	; POTINP - LMB pressed?
 	;BEQ.W	.exit
@@ -191,7 +196,27 @@ __SCANLINIZE_PLANE:
 	DBRA	D7,.outerLoop
 	RTS
 
-__FILLRNDBG:
+__FILLSOLID:
+	MOVE.W	#he-1,D4		; QUANTE LINEE
+	.outerloop:		; NUOVA RIGA
+	CLR	D6
+	MOVE.W	#bypl/2-1,D6	; RESET D6
+	.innerloop:
+	BSR.S	._RandomWord
+	MOVE.W	#-1,(A4)+
+	DBRA	D6,.innerloop
+	DBRA	D4,.outerloop
+	RTS
+	._RandomWord:	
+	BSR	._RandomByte
+	ROL.W	#8,D5
+	._RandomByte:	
+	MOVE.B	$DFF007,D5 ;$dff00a $dff00b for mouse pos
+	MOVE.B	$BFD800,D3
+	EOR.B	D3,D5
+	RTS
+
+__FILLRND:
 	MOVE.W	#he-1,D4		; QUANTE LINEE
 	.outerloop:		; NUOVA RIGA
 	CLR	D6
@@ -212,10 +237,10 @@ __FILLRNDBG:
 	RTS
 
 __HW_DISPLACE:
-	LEA	SCROLL_LFO,A0
+	LEA	SCROLL_LFO1,A0
 	MOVE.W	SCROLL_IDX,D0
 	ADD.W	#$2,D0
-	AND.W	#$40-1,D0
+	AND.W	#$3F-1,D0
 	MOVE.W	D0,SCROLL_IDX
 	CLR.L	D2
 	MOVE.W	$DFF006,D4	; for bug?
@@ -231,41 +256,45 @@ __HW_DISPLACE:
 	CMP.W	D4,D2
 	BEQ.S	.waitNextRaster
 
-	MOVE.W	D2,D4
+	;CLR.L	D5
+	;MOVE.W	D2,D4
 	;MOVE.B	$DFF007,D5	; $dff00a $dff00b for mouse pos
 	;MOVE.B	$BFD800,D1
 	;EOR.B	D1,D5
 	;MOVE.W	D5,BPLCON1
 	MOVE.W	(A0,D0.W),BPLCON1	; 19DEA68E GLITCHA
 	ADD.W	#$2,D0
-	AND.W	#$40-1,D0
-
-	;MOVE.B	D0,$DFF108
-	;MOVE.B	D0,$DFF10A
+	AND.W	#$3F-1,D0
 
 	MOVE.W	$DFF004,D1	; Read vert most sig. bits
 	BTST	#0,D1
 	BEQ.S	.waitNextRaster
 
-	CMP.W	#$0A00,D2		; DONT DISPLACE TXT
-	BGE.S	.dontSkip		; DONT DISPLACE TXT
-	MOVE.W	#0,BPLCON1	; RESET REGISTER
-	;MOVE.L	#0,$DFF108	; RESET
-	
-	.dontSkip:
+	BTST	#6,$BFE001	; POTINP - LMB pressed?
+	BNE.S	.skip
+	MOVE.B	D0,BPL1MOD
+	MOVE.B	D0,BPL2MOD
+	.skip:
+
+	;CMP.W	#$0A00,D2		; DONT DISPLACE TXT
+	;BGE.S	.dontSkip		; DONT DISPLACE TXT
+	;;MOVE.W	#0,BPLCON1	; RESET REGISTER
+	;;MOVE.L	#0,BPL1MOD	; RESET
+	;
+	;.dontSkip:
 	CMP.W	#$2F00,D2		; 12.032
 	BNE.S	.waitNextRaster
 
-	MOVE.W	#0,BPLCON1	; RESET REGISTER
+	;MOVE.W	#0,BPLCON1	; RESET REGISTER
 	;MOVE.L	#0,$DFF108	; RESET
 	RTS
 
 FRAME_STROBE:	DC.B 0,0
 NOISE_SEED_0:	DC.B 0
 NOISE_SEED_1:	DC.B 0
-SCROLL_LFO:	DC.W 8,10,11,12 14,15,15,16,16,16,15,15,14,12,11,10,8,6,5,4,2,1,1,0,0,0,1,1,2,4,5,6
-		DC.W 16,0,16,0,15,0,15,0,14,13,12,12,11,10,10,9,8,7,6,6,5,4,4,3,2,2,1,1,1,0,0,0,0,0,0,0,1,1,  1,  2,  2,  3,  4,  4,  5,  6,  6,  7,  8,  9, 10, 10, 11, 12, 12, 13, 14, 14, 15, 15, 15, 16, 16, 16
 SCROLL_IDX:	DC.W 0
+SCROLL_LFO1:	DC.W 1,   1,   1,   2,   2,   2,   3,   4,   4,   5,   5,   6,   6,   7,   7,   7,   7,   7,   7,   6,   6,   5,   5,   4,   4,   3,   2,   2,   2,   1,   1,   1 
+
 ;FONT:		DC.L 0,0		; SPACE CHAR
 ;		INCBIN "c_font_leftpadding2.raw";,0
 		EVEN
@@ -275,7 +304,7 @@ SCROLL_IDX:	DC.W 0
 	SECTION	ChipData,DATA_C	;declared data that must be in chipmem
 ;*******************************************************************************
 TEST_GRID:	INCBIN "VHS_GRID_TEST.raw"
-CRT_BORDER:	INCBIN "CRT_border_dither.raw"
+OVERLAY:		INCBIN "H_BAR_TEST.raw"
 
 ;MED_MODULE:	INCBIN "med/RustEater_2022_FIX4.med"
 ;_chipzero:	DC.L 0
@@ -296,12 +325,12 @@ COPPER:	; #### COPPERLIST ####################################################
 	;DC.W $102,$00	; SCROLL REGISTER (AND PLAYFIELD PRI)
 
 	.Palette:
-	DC.W $0180,$0108,$0182,$0319,$0184,$031A,$0186,$031B
+	DC.W $0180,$0000,$0182,$0319,$0184,$031A,$0186,$031B
 	DC.W $0188,$033B,$018A,$033C,$018C,$042D,$018E,$042E
 	DC.W $0190,$034C,$0192,$055B,$0194,$045D,$0196,$056D
 	DC.W $0198,$067D,$019A,$088D,$019C,$099D,$019E,$0CCD
 	DC.W $01A0,$011C,$01A2,$0009,$01A4,$0119,$01A6,$011A
-	DC.W $01A8,$000B,$01AA,$032A,$01AC,$011B,$01AE,$011B
+	DC.W $01A8,$000B,$01AA,$032A,$01AC,$00f1,$01AE,$00f0
 	DC.W $01B0,$0449,$01B2,$044B,$01B4,$056A,$01B6,$066C
 	DC.W $01B8,$067B,$01BA,$098B,$01BC,$0EED,$01BE,$0FFD
 
@@ -325,7 +354,148 @@ COPPER:	; #### COPPERLIST ####################################################
 	DC.W $100,bpls*$1000+$200	;enable bitplanes
 	;DC.W $100,bpls*$1000+%011000000000
 
-	DC.W $FFDF,$FFFE		; allow VPOS>$ff
+	; https://gradient-blaster.grahambates.com/?points=118@0,10c@53,30d@129,01d@198,00a@255&steps=256&blendMode=perceptual&ditherMode=shuffle&target=amigaOcs&shuffleCount=2
+	Gradient:
+	dc.w $182,$118
+	dc.w $2f07,$fffe
+	dc.w $182,$109
+	dc.w $3007,$fffe
+	dc.w $182,$118
+	dc.w $3107,$fffe
+	dc.w $182,$109
+	dc.w $3207,$fffe
+	dc.w $182,$118
+	dc.w $3307,$fffe
+	dc.w $182,$109
+	dc.w $3407,$fffe
+	dc.w $182,$118
+	dc.w $3507,$fffe
+	dc.w $182,$109
+	dc.w $3b07,$fffe
+	dc.w $182,$10a
+	dc.w $3c07,$fffe
+	dc.w $182,$109
+	dc.w $3d07,$fffe
+	dc.w $182,$10a
+	dc.w $3e07,$fffe
+	dc.w $182,$109
+	dc.w $3f07,$fffe
+	dc.w $182,$10a
+	dc.w $4007,$fffe
+	dc.w $182,$109
+	dc.w $4107,$fffe
+	dc.w $182,$10a
+	dc.w $4807,$fffe
+	dc.w $182,$10b
+	dc.w $4907,$fffe
+	dc.w $182,$10a
+	dc.w $4a07,$fffe
+	dc.w $182,$10b
+	dc.w $5407,$fffe
+	dc.w $182,$10c
+	dc.w $5507,$fffe
+	dc.w $182,$10b
+	dc.w $5607,$fffe
+	dc.w $182,$10c
+	dc.w $5707,$fffe
+	dc.w $182,$10b
+	dc.w $5807,$fffe
+	dc.w $182,$10c
+	dc.w $5907,$fffe
+	dc.w $182,$10b
+	dc.w $5a07,$fffe
+	dc.w $182,$10c
+	dc.w $6d07,$fffe
+	dc.w $182,$10d
+	dc.w $7707,$fffe
+	dc.w $182,$20d
+	dc.w $7807,$fffe
+	dc.w $182,$10d
+	dc.w $7907,$fffe
+	dc.w $182,$20d
+	dc.w $a007,$fffe
+	dc.w $182,$30d
+	dc.w $a107,$fffe
+	dc.w $182,$20d
+	dc.w $a207,$fffe
+	dc.w $182,$30d
+	dc.w $b807,$fffe
+	dc.w $182,$20d
+	dc.w $d207,$fffe
+	dc.w $182,$10d
+	dc.w $d307,$fffe
+	dc.w $182,$20d
+	dc.w $d407,$fffe
+	dc.w $182,$10d
+	dc.w $d507,$fffe
+	dc.w $182,$20d
+	dc.w $d607,$fffe
+	dc.w $182,$10d
+	dc.w $d707,$fffe
+	dc.w $182,$20d
+	dc.w $d807,$fffe
+	dc.w $182,$10d
+	dc.w $e507,$fffe
+	dc.w $182,$00d
+	dc.w $e607,$fffe
+	dc.w $182,$10d
+	dc.w $e707,$fffe
+	dc.w $182,$00d
+	dc.w $e807,$fffe
+	dc.w $182,$10d
+	dc.w $e907,$fffe
+	dc.w $182,$00d
+	dc.w $ea07,$fffe
+	dc.w $182,$10d
+	dc.w $eb07,$fffe
+	dc.w $182,$01d
+	dc.w $fa07,$fffe
+	dc.w $182,$00d
+	dc.w $ff07,$fffe
+	dc.w $182,$00c
+	dc.w $ffdf,$fffe ; PAL fix
+	dc.w $007,$fffe
+	dc.w $182,$00d
+	dc.w $107,$fffe
+	dc.w $182,$00c
+	dc.w $207,$fffe
+	dc.w $182,$00d
+	dc.w $307,$fffe
+	dc.w $182,$00c
+	dc.w $407,$fffe
+	dc.w $182,$00d
+	dc.w $507,$fffe
+	dc.w $182,$00c
+	dc.w $1107,$fffe
+	dc.w $182,$00b
+	dc.w $1207,$fffe
+	dc.w $182,$00c
+	dc.w $1307,$fffe
+	dc.w $182,$00b
+	dc.w $1407,$fffe
+	dc.w $182,$00c
+	dc.w $1507,$fffe
+	dc.w $182,$00b
+	dc.w $1607,$fffe
+	dc.w $182,$00c
+	dc.w $1707,$fffe
+	dc.w $182,$00b
+	dc.w $2307,$fffe
+	dc.w $182,$00a
+	dc.w $2407,$fffe
+	dc.w $182,$00b
+	dc.w $2507,$fffe
+	dc.w $182,$00a
+	dc.w $2607,$fffe
+	dc.w $182,$00b
+	dc.w $2707,$fffe
+	dc.w $182,$00a
+	dc.w $2807,$fffe
+	dc.w $182,$00b
+	dc.w $2907,$fffe
+	dc.w $182,$00a
+
+	;DC.W $FFDF,$FFFE		; allow VPOS>$ff
 	DC.W $3507,$FF00		; ## RASTER END ## #$12C?
 	DC.W $009A,$0010		; CLEAR RASTER BUSY FLAG
 	DC.W $FFFF,$FFFE		; magic value to end copperlist
