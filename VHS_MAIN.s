@@ -7,12 +7,16 @@
 	;INCLUDE	"med/med_feature_control.i"	; MED CFGs
 	;INCLUDE	"med/MED_PlayRoutine.i"
 ;********** Constants **********
-wi	EQU 320
-he	EQU 256		; screen height
-bpls	EQU 6		; depth
-bypl	EQU wi/16*2	; byte-width of 1 bitplane line (40bytes)
-bwid	EQU bpls*bypl	; byte-width of 1 pixel line (all bpls)
+wi		EQU 320
+he		EQU 256		; screen height
+bpls		EQU 6		; depth
+bypl		EQU wi/16*2	; byte-width of 1 bitplane line (40bytes)
+bwid		EQU bpls*bypl	; byte-width of 1 pixel line (all bpls)
 ;*******************************
+COP_WAITS		EQU 56
+COP_FRAMES	EQU 50
+COP_COLS_REGS	EQU 1
+COP_BLIT_SIZE	EQU COP_COLS_REGS*2+2
 ;********** Demo **********	;Demo-specific non-startup code below.
 Demo:			;a4=VBR, a6=Custom Registers Base addr
 	;*--- init ---*
@@ -23,14 +27,14 @@ Demo:			;a4=VBR, a6=Custom Registers Base addr
 	LEA	PLANE_0,A0
 	LEA	COPPER\.BplPtrs,A1
 	BSR.W	PokePtrs
-	LEA	PLANE_1,A0
+	LEA	PLANE_2,A0
 	LEA	COPPER\.BplPtrs+8,A1
 	BSR.W	PokePtrs
-	LEA	PLANE_2,A0
+	LEA	TEST_GRID,A0
 	LEA	COPPER\.BplPtrs+16,A1
 	BSR.W	PokePtrs
 	LEA	TEST_GRID,A0
-	LEA	-40(A0),A0
+	;LEA	-40(A0),A0
 	LEA	COPPER\.BplPtrs+24,A1
 	BSR.W	PokePtrs
 	LEA	TEST_GRID,A0
@@ -41,15 +45,17 @@ Demo:			;a4=VBR, a6=Custom Registers Base addr
 	LEA	COPPER\.BplPtrs+40,A1
 	BSR.W	PokePtrs
 
+	MOVE.L	#COPPER,COP1LC
+
 	; #### CPU INTENSIVE TASKS BEFORE STARTING MUSIC
 	LEA	PLANE_0,A4	; FILLS A PLANE
-	BSR.W	__FILLSOLID	; SOME DUMMY OPERATION...
+	BSR.W	__FILLRND		; SOME DUMMY OPERATION...
 
 	LEA	PLANE_1,A4	; FILLS A PLANE
 	BSR.W	__FILLRND		; SOME DUMMY OPERATION...
 
-	LEA	PLANE_2,A4	; FILLS A PLANE
-	BSR.W	__FILLRND		; SOME DUMMY OPERATION...
+	;LEA	PLANE_2,A4	; FILLS A PLANE
+	;BSR.W	__FILLRND		; SOME DUMMY OPERATION...
 
 	LEA	PLANE_5,A4	; FILLS A PLANE
 	MOVE.L	#$500000F5,D0
@@ -59,12 +65,32 @@ Demo:			;a4=VBR, a6=Custom Registers Base addr
 	;BSR.W	__SCANLINIZE_PLANE	; __TEXTURIZE_PLANE
 	;MOVE.L	#$FFFFFFFF,(A4)
 
+	; #### EXTRACT COPPERLISTS  ######
+	LEA	GRADIENT_VALS,A0
+	LEA	COPPER_BUFFER,A1	; COPPER_BUFFER
+	LEA	GRADIENT_REGISTERS,A3
+	LEA	GRADIENT_PTRS,A4
+	LEA	(A4),A5
+	ADD.L	#COP_FRAMES*2*4-4,A5 ; A4 PTR START - A5 PTR STOP
+	MOVE.W	#COP_FRAMES-1,D5
+	.loop2:
+	MOVE.L	A1,(A4)+
+	MOVE.L	A1,-(A5)
+	BSR.W	__DECRUNCH_COPPERLIST
+	DBRA	D5,.loop2
+	;LEA	GRADIENT_VALS,A0	; INITIAL COPPER
+	;LEA	COPPER\.Waits,A1
+	;BSR.W	__DECRUNCH_COPPERLIST
+	; #### EXTRACT COPPERLISTS  ######
+	LEA	COPPER_BUFFER,A4
+	LEA	COPPER\.Waits,A5
+	BSR.W	__BLIT_GRADIENT_IN_COPPER
 	; #### CPU INTENSIVE TASKS BEFORE STARTING MUSIC
 
 	; in photon's wrapper comment:;move.w d2,$9a(a6) ;INTENA
 	;MOVE.W	#27,MED_START_POS	; skip to pos# after first block
 	;JSR	_startmusic
-	MOVE.L	#COPPER,COP1LC
+
 ;********************  main loop  ********************
 MainLoop:	
 	;BTST	#6,$BFE001	; POTINP - LMB pressed?
@@ -74,27 +100,31 @@ MainLoop:
 	;;MOVE.W	D5,NOISE_SEED_0
 	;ADD.B	#2,NOISE_SEED_0
 	;.skip:
-	BSR.W	__HW_DISPLACE
 
-	;CLR.W	$100		; DEBUG | w 0 100 2
-	CLR.L	D5
+	TST.B	FRAME_STROBE
+	BNE.W	.oddFrame
+	MOVE.B	#1,FRAME_STROBE
+	LEA	PLANE_0,A0
+	LEA	PLANE_1,A2
+	BRA.W	.evenFrame
+	.oddFrame:
+	MOVE.B	#0,FRAME_STROBE
+	LEA	PLANE_0,A2
 	LEA	PLANE_1,A0
-	MOVE.B	NOISE_SEED_0,D5
+	.evenFrame:
+
+	CLR.L	D5
+	MOVE.B	NOISE_SEED_1,D5
 	BCLR	#0,D5
 	ADD.L	D5,A0
 	LEA	COPPER\.BplPtrs,A1
 	BSR.W	PokePtrs
 	ADD.B	#bypl,D5
-	MOVE.B	D5,NOISE_SEED_0
+	ADD.L	D5,A2
+	MOVE.B	(A2),NOISE_SEED_1
 
-	CLR.L	D5
-	LEA	PLANE_2,A0
-	MOVE.B	NOISE_SEED_1,D5
-	BCLR	#0,D5
-	ADD.L	D5,A0
-	LEA	COPPER\.BplPtrs+8,A1
-	BSR.W	PokePtrs
-	MOVE.B	(A0),NOISE_SEED_1
+	BSR.W	__HW_DISPLACE
+	BSR.W	__BLIT_GRADIENT_IN_COPPER
 
 	.WaitRasterCopper:
 	;MOVE.W	#$0A0F,$DFF180	; show rastertime left down to $12c
@@ -135,6 +165,57 @@ VBint:				; Blank template VERTB interrupt
 	.notvb:	
 	movem.l	(sp)+,d0/a6	; restore
 	rte
+
+__DECRUNCH_COPPERLIST:
+	MOVE.W	#COP_WAITS,D7
+	.loop:
+	TST.W	(A0)		; ZEROED WORD = allow VPOS>$ff
+	BNE.S	.notFF
+	MOVE.L	#$FFDFFFFE,(A1)+	; allow VPOS>$ff
+	LEA	2(A0),A0		; NEXT
+	BRA.S	.skip
+	.notFF:
+	MOVE.B	(A0)+,D0		; FIRST WAIT
+	LSL.W	#8,D0
+	MOVE.B	#$07,D0		; CMD RESTORED $1C07
+	MOVE.W	D0,(A1)+		; WAIT
+	MOVE.W	#$FFFE,(A1)+	; WAIT
+	CLR.L	D1
+	MOVE.B	(A0)+,D1		; BYTE FOR COLOR
+	LSR.W	#4,D1		; EXTEND FIRST NIBBLE
+	;MOVE.B	(A0)+,D1		; FOR RED VALUE
+	MOVE.W	#COP_COLS_REGS-1,D6
+	.innerLoop:
+	LSL.W	D6		; ONLY EVEN VALUES
+	MOVE.W	(A3,D6.W),(A1)+	; COLOR REGISTER
+	MOVE.W	D1,(A1)+		; COLOR VALUE
+	LSR.W	D6		; GO BACK TO COUNTER
+	DBRA	D6,.innerLoop
+	.skip:
+	DBRA	D7,.loop
+	RTS
+
+__BLIT_GRADIENT_IN_COPPER:
+	MOVE.W	GRADIENT_INDEX,D0
+	LEA	GRADIENT_PTRS,A3
+	MOVE.L	(A3,D0.W),A4
+	ADD.W	#$4,D0
+	CMP.W	#COP_FRAMES*2*4-4,D0
+	BLO.S	.dontReset
+	MOVE.W	#$0,D0
+	.dontReset:
+	MOVE.W	D0,GRADIENT_INDEX
+	LEA	COPPER\.Waits,A5
+	MOVE.L	(A4)+,(A5)+	; Trick for alignment ;)
+	_WaitBlitterNasty
+	MOVE.L	#$FFFFFFFF,BLTAFWM
+	MOVE.L	#(%0000100111110000<<16),BLTCON0
+	MOVE.W	#0,BLTAMOD
+	MOVE.W	#0,BLTDMOD
+	MOVE.L	A4,BLTAPTH
+	MOVE.L	A5,BLTDPTH
+	MOVE.W	#(COP_WAITS<<6)+COP_BLIT_SIZE,BLTSIZE
+	RTS
 
 __RANDOMIZE_PLANE:
 	;SWAP	D5
@@ -237,7 +318,7 @@ __FILLRND:
 	RTS
 
 __HW_DISPLACE:
-	LEA	SCROLL_LFO1,A0
+	LEA	LFO_SINE_1,A0
 	MOVE.W	SCROLL_IDX,D0
 	ADD.W	#$2,D0
 	AND.W	#$3F-1,D0
@@ -262,6 +343,14 @@ __HW_DISPLACE:
 	;MOVE.B	$BFD800,D1
 	;EOR.B	D1,D5
 	;MOVE.W	D5,BPLCON1
+
+	BTST	#6,$BFE001	; POTINP - LMB pressed?
+	BNE.S	.skip
+	;MOVE.B	D0,BPL1MOD
+	;MOVE.B	D0,BPL2MOD
+	LEA	LFO_NOISE,A0
+	.skip:
+
 	MOVE.W	(A0,D0.W),BPLCON1	; 19DEA68E GLITCHA
 	ADD.W	#$2,D0
 	AND.W	#$3F-1,D0
@@ -269,12 +358,6 @@ __HW_DISPLACE:
 	MOVE.W	$DFF004,D1	; Read vert most sig. bits
 	BTST	#0,D1
 	BEQ.S	.waitNextRaster
-
-	BTST	#6,$BFE001	; POTINP - LMB pressed?
-	BNE.S	.skip
-	MOVE.B	D0,BPL1MOD
-	MOVE.B	D0,BPL2MOD
-	.skip:
 
 	;CMP.W	#$0A00,D2		; DONT DISPLACE TXT
 	;BGE.S	.dontSkip		; DONT DISPLACE TXT
@@ -293,7 +376,12 @@ FRAME_STROBE:	DC.B 0,0
 NOISE_SEED_0:	DC.B 0
 NOISE_SEED_1:	DC.B 0
 SCROLL_IDX:	DC.W 0
-SCROLL_LFO1:	DC.W 1,   1,   1,   2,   2,   2,   3,   4,   4,   5,   5,   6,   6,   7,   7,   7,   7,   7,   7,   6,   6,   5,   5,   4,   4,   3,   2,   2,   2,   1,   1,   1 
+LFO_SINE_1:	DC.W 1,1,1,2,2,2,3,4,4,5,5,6,6,7,7,7,7,7,7,6,6,5,5,4,4,3,2,2,2,1,1,1 
+LFO_NOISE:	DC.W 1,1,1,2,2,2,3,4,2,5,2,6,2,7,1,7,1,7,1,6,3,5,2,4,1,3,5,2,4,1,6,1 
+
+GRADIENT_REGISTERS:	DC.W $0180,$0188,$0198,$019A,$019C,$019E
+GRADIENT_INDEX:	DC.W 0
+GRADIENT_VALS:	INCLUDE "CopGradients.i"
 
 ;FONT:		DC.L 0,0		; SPACE CHAR
 ;		INCBIN "c_font_leftpadding2.raw";,0
@@ -325,14 +413,14 @@ COPPER:	; #### COPPERLIST ####################################################
 	;DC.W $102,$00	; SCROLL REGISTER (AND PLAYFIELD PRI)
 
 	.Palette:
-	DC.W $0180,$0000,$0182,$0319,$0184,$031A,$0186,$031B
-	DC.W $0188,$033B,$018A,$033C,$018C,$042D,$018E,$042E
-	DC.W $0190,$034C,$0192,$055B,$0194,$045D,$0196,$056D
-	DC.W $0198,$067D,$019A,$088D,$019C,$099D,$019E,$0CCD
-	DC.W $01A0,$011C,$01A2,$0009,$01A4,$0119,$01A6,$011A
-	DC.W $01A8,$000B,$01AA,$032A,$01AC,$00f1,$01AE,$00f0
-	DC.W $01B0,$0449,$01B2,$044B,$01B4,$056A,$01B6,$066C
-	DC.W $01B8,$067B,$01BA,$098B,$01BC,$0EED,$01BE,$0FFD
+	DC.W $0180,$000f,$0182,$003e,$0184,$013d,$0186,$022F
+	DC.W $0188,$033A,$018A,$013F,$018C,$023F,$018E,$033F
+	DC.W $0190,$034F,$0192,$022D,$0194,$012B,$0196,$0354
+	DC.W $0198,$0174,$019A,$012A,$019C,$0239,$019E,$00F0
+	DC.W $01A0,$068F,$01A2,$0469,$01A4,$0F0F,$01A6,$0CDB
+	DC.W $01A8,$0FFF,$01AA,$0FFF,$01AC,$0FFF,$01AE,$0FFF
+	DC.W $01B0,$0FFF,$01B2,$0FFF,$01B4,$0FFF,$01B6,$0FFF
+	DC.W $01B8,$0FFF,$01BA,$0FFF,$01BC,$0FFF,$01BE,$0FFF
 
 	.SpritePointers:
 	DC.W $0120,0,$122,0	; 0
@@ -354,146 +442,8 @@ COPPER:	; #### COPPERLIST ####################################################
 	DC.W $100,bpls*$1000+$200	;enable bitplanes
 	;DC.W $100,bpls*$1000+%011000000000
 
-	; https://gradient-blaster.grahambates.com/?points=118@0,10c@53,30d@129,01d@198,00a@255&steps=256&blendMode=perceptual&ditherMode=shuffle&target=amigaOcs&shuffleCount=2
-	Gradient:
-	dc.w $182,$118
-	dc.w $2f07,$fffe
-	dc.w $182,$109
-	dc.w $3007,$fffe
-	dc.w $182,$118
-	dc.w $3107,$fffe
-	dc.w $182,$109
-	dc.w $3207,$fffe
-	dc.w $182,$118
-	dc.w $3307,$fffe
-	dc.w $182,$109
-	dc.w $3407,$fffe
-	dc.w $182,$118
-	dc.w $3507,$fffe
-	dc.w $182,$109
-	dc.w $3b07,$fffe
-	dc.w $182,$10a
-	dc.w $3c07,$fffe
-	dc.w $182,$109
-	dc.w $3d07,$fffe
-	dc.w $182,$10a
-	dc.w $3e07,$fffe
-	dc.w $182,$109
-	dc.w $3f07,$fffe
-	dc.w $182,$10a
-	dc.w $4007,$fffe
-	dc.w $182,$109
-	dc.w $4107,$fffe
-	dc.w $182,$10a
-	dc.w $4807,$fffe
-	dc.w $182,$10b
-	dc.w $4907,$fffe
-	dc.w $182,$10a
-	dc.w $4a07,$fffe
-	dc.w $182,$10b
-	dc.w $5407,$fffe
-	dc.w $182,$10c
-	dc.w $5507,$fffe
-	dc.w $182,$10b
-	dc.w $5607,$fffe
-	dc.w $182,$10c
-	dc.w $5707,$fffe
-	dc.w $182,$10b
-	dc.w $5807,$fffe
-	dc.w $182,$10c
-	dc.w $5907,$fffe
-	dc.w $182,$10b
-	dc.w $5a07,$fffe
-	dc.w $182,$10c
-	dc.w $6d07,$fffe
-	dc.w $182,$10d
-	dc.w $7707,$fffe
-	dc.w $182,$20d
-	dc.w $7807,$fffe
-	dc.w $182,$10d
-	dc.w $7907,$fffe
-	dc.w $182,$20d
-	dc.w $a007,$fffe
-	dc.w $182,$30d
-	dc.w $a107,$fffe
-	dc.w $182,$20d
-	dc.w $a207,$fffe
-	dc.w $182,$30d
-	dc.w $b807,$fffe
-	dc.w $182,$20d
-	dc.w $d207,$fffe
-	dc.w $182,$10d
-	dc.w $d307,$fffe
-	dc.w $182,$20d
-	dc.w $d407,$fffe
-	dc.w $182,$10d
-	dc.w $d507,$fffe
-	dc.w $182,$20d
-	dc.w $d607,$fffe
-	dc.w $182,$10d
-	dc.w $d707,$fffe
-	dc.w $182,$20d
-	dc.w $d807,$fffe
-	dc.w $182,$10d
-	dc.w $e507,$fffe
-	dc.w $182,$00d
-	dc.w $e607,$fffe
-	dc.w $182,$10d
-	dc.w $e707,$fffe
-	dc.w $182,$00d
-	dc.w $e807,$fffe
-	dc.w $182,$10d
-	dc.w $e907,$fffe
-	dc.w $182,$00d
-	dc.w $ea07,$fffe
-	dc.w $182,$10d
-	dc.w $eb07,$fffe
-	dc.w $182,$01d
-	dc.w $fa07,$fffe
-	dc.w $182,$00d
-	dc.w $ff07,$fffe
-	dc.w $182,$00c
-	dc.w $ffdf,$fffe ; PAL fix
-	dc.w $007,$fffe
-	dc.w $182,$00d
-	dc.w $107,$fffe
-	dc.w $182,$00c
-	dc.w $207,$fffe
-	dc.w $182,$00d
-	dc.w $307,$fffe
-	dc.w $182,$00c
-	dc.w $407,$fffe
-	dc.w $182,$00d
-	dc.w $507,$fffe
-	dc.w $182,$00c
-	dc.w $1107,$fffe
-	dc.w $182,$00b
-	dc.w $1207,$fffe
-	dc.w $182,$00c
-	dc.w $1307,$fffe
-	dc.w $182,$00b
-	dc.w $1407,$fffe
-	dc.w $182,$00c
-	dc.w $1507,$fffe
-	dc.w $182,$00b
-	dc.w $1607,$fffe
-	dc.w $182,$00c
-	dc.w $1707,$fffe
-	dc.w $182,$00b
-	dc.w $2307,$fffe
-	dc.w $182,$00a
-	dc.w $2407,$fffe
-	dc.w $182,$00b
-	dc.w $2507,$fffe
-	dc.w $182,$00a
-	dc.w $2607,$fffe
-	dc.w $182,$00b
-	dc.w $2707,$fffe
-	dc.w $182,$00a
-	dc.w $2807,$fffe
-	dc.w $182,$00b
-	dc.w $2907,$fffe
-	dc.w $182,$00a
+	.Waits:
+	DS.W COP_BLIT_SIZE*COP_WAITS+2	; +2 vpos >$FF
 
 	;DC.W $FFDF,$FFFE		; allow VPOS>$ff
 	DC.W $3507,$FF00		; ## RASTER END ## #$12C?
@@ -503,13 +453,15 @@ COPPER:	; #### COPPERLIST ####################################################
 ;*******************************************************************************
 	SECTION ChipBuffers,BSS_C	;BSS doesn't count toward exe size
 ;*******************************************************************************
-DUMMY_0:	DS.B bypl
-PLANE_0:	DS.B he*bypl
-PLANE_1:	DS.B he*bypl
-DUMMY_2:	DS.B he/4*bypl
-PLANE_2:	DS.B he*bypl
-PLANE_3:	DS.B he*bypl
-PLANE_4:	DS.B he*bypl
-PLANE_5:	DS.B he*bypl
+GRADIENT_PTRS:	DS.L COP_FRAMES*2
+COPPER_BUFFER:	DS.W COP_FRAMES*(COP_BLIT_SIZE*COP_WAITS+2)	; +2 vpos >$FF
+DUMMY_0:		DS.B bypl
+PLANE_0:		DS.B he*bypl
+PLANE_1:		DS.B he*bypl
+DUMMY_2:		DS.B he/4*bypl
+PLANE_2:		DS.B he*bypl
+PLANE_3:		DS.B he*bypl
+PLANE_4:		DS.B he*bypl
+PLANE_5:		DS.B he*bypl
 
 END
