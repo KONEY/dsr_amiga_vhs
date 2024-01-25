@@ -14,8 +14,8 @@ bypl		EQU wi/16*2	; byte-width of 1 bitplane line (40bytes)
 bwid		EQU bpls*bypl	; byte-width of 1 pixel line (all bpls)
 ;*******************************
 COP_WAITS		EQU 56
-COP_FRAMES	EQU 50
-COP_COLS_REGS	EQU 1
+COP_FRAMES	EQU 42
+COP_COLS_REGS	EQU 3
 COP_BLIT_SIZE	EQU COP_COLS_REGS*2+2
 ;********** Demo **********	;Demo-specific non-startup code below.
 Demo:			;a4=VBR, a6=Custom Registers Base addr
@@ -40,14 +40,35 @@ Demo:			;a4=VBR, a6=Custom Registers Base addr
 	LEA	TEST_GRID,A0
 	LEA	COPPER\.BplPtrs+32,A1
 	BSR.W	PokePtrs
-	;LEA	PLANE_5,A0
-	LEA	OVERLAY,A0
+	;LEA	OVERLAY,A0
+	LEA	PLANE_5,A0
 	LEA	COPPER\.BplPtrs+40,A1
 	BSR.W	PokePtrs
 
-	MOVE.L	#COPPER,COP1LC
-
+	; #### EXTRACT COPPERLISTS  ######
+	LEA	GRADIENT_VALS,A0
+	LEA	COPPER_BUFFER,A1	; COPPER_BUFFER
+	LEA	GRADIENT_REGISTERS,A3
+	LEA	GRADIENT_PTRS,A4
+	;LEA	(A4),A5
+	;ADD.L	#COP_FRAMES*4-4,A5 ; A4 PTR START - A5 PTR STOP
+	MOVE.W	#COP_FRAMES-1,D4
+	.loop2:
+	MOVE.L	A1,(A4)+
+	;MOVE.L	A1,-(A5)
+	BSR.W	__DECRUNCH_COPPERLIST
+	DBRA	D4,.loop2
+	;LEA	GRADIENT_VALS,A0	; INITIAL COPPER
+	;LEA	COPPER\.Waits,A1
+	;BSR.W	__DECRUNCH_COPPERLIST
+	; #### EXTRACT COPPERLISTS  ######
 	; #### CPU INTENSIVE TASKS BEFORE STARTING MUSIC
+	LEA	COPPER_BUFFER,A4
+	LEA	COPPER\.Waits,A5
+	BSR.W	__BLIT_GRADIENT_IN_COPPER
+	; ################################
+	MOVE.L	#COPPER,COP1LC
+	; ################################
 	LEA	PLANE_0,A4	; FILLS A PLANE
 	BSR.W	__FILLRND		; SOME DUMMY OPERATION...
 
@@ -57,34 +78,13 @@ Demo:			;a4=VBR, a6=Custom Registers Base addr
 	;LEA	PLANE_2,A4	; FILLS A PLANE
 	;BSR.W	__FILLRND		; SOME DUMMY OPERATION...
 
-	LEA	PLANE_5,A4	; FILLS A PLANE
-	MOVE.L	#$500000F5,D0
-	MOVE.L	#$AFFFFF0A,D1
+	;LEA	PLANE_5,A4	; FILLS A PLANE
+	;MOVE.L	#$500000F5,D0
+	;MOVE.L	#$AFFFFF0A,D1
 	;MOVE.L	#$AAAAAAAA,D0
 	;MOVE.L	#$55555555,D1
 	;BSR.W	__SCANLINIZE_PLANE	; __TEXTURIZE_PLANE
 	;MOVE.L	#$FFFFFFFF,(A4)
-
-	; #### EXTRACT COPPERLISTS  ######
-	LEA	GRADIENT_VALS,A0
-	LEA	COPPER_BUFFER,A1	; COPPER_BUFFER
-	LEA	GRADIENT_REGISTERS,A3
-	LEA	GRADIENT_PTRS,A4
-	LEA	(A4),A5
-	ADD.L	#COP_FRAMES*2*4-4,A5 ; A4 PTR START - A5 PTR STOP
-	MOVE.W	#COP_FRAMES-1,D5
-	.loop2:
-	MOVE.L	A1,(A4)+
-	MOVE.L	A1,-(A5)
-	BSR.W	__DECRUNCH_COPPERLIST
-	DBRA	D5,.loop2
-	;LEA	GRADIENT_VALS,A0	; INITIAL COPPER
-	;LEA	COPPER\.Waits,A1
-	;BSR.W	__DECRUNCH_COPPERLIST
-	; #### EXTRACT COPPERLISTS  ######
-	LEA	COPPER_BUFFER,A4
-	LEA	COPPER\.Waits,A5
-	BSR.W	__BLIT_GRADIENT_IN_COPPER
 	; #### CPU INTENSIVE TASKS BEFORE STARTING MUSIC
 
 	; in photon's wrapper comment:;move.w d2,$9a(a6) ;INTENA
@@ -100,6 +100,7 @@ MainLoop:
 	;;MOVE.W	D5,NOISE_SEED_0
 	;ADD.B	#2,NOISE_SEED_0
 	;.skip:
+	BSR.W	__BLIT_GRADIENT_IN_COPPER
 
 	TST.B	FRAME_STROBE
 	BNE.W	.oddFrame
@@ -124,7 +125,6 @@ MainLoop:
 	MOVE.B	(A2),NOISE_SEED_1
 
 	BSR.W	__HW_DISPLACE
-	BSR.W	__BLIT_GRADIENT_IN_COPPER
 
 	.WaitRasterCopper:
 	;MOVE.W	#$0A0F,$DFF180	; show rastertime left down to $12c
@@ -181,15 +181,22 @@ __DECRUNCH_COPPERLIST:
 	MOVE.W	D0,(A1)+		; WAIT
 	MOVE.W	#$FFFE,(A1)+	; WAIT
 	CLR.L	D1
-	MOVE.B	(A0)+,D1		; BYTE FOR COLOR
-	LSR.W	#4,D1		; EXTEND FIRST NIBBLE
-	;MOVE.B	(A0)+,D1		; FOR RED VALUE
+	MOVE.B	(A0),D1		; BYTE FOR COLOR
+
+	;MOVE.B	D6,D1		; FOR RED VALUE
+	;ADD.B	D7,D1
+	;SUB.B	D6,D1
+	LSR.W	#2,D1		; EXTEND FIRST NIBBLE
+	MOVE.B	(A0)+,D1		; FOR RED VALUE
+	LSL.B	D1
+
 	MOVE.W	#COP_COLS_REGS-1,D6
 	.innerLoop:
 	LSL.W	D6		; ONLY EVEN VALUES
 	MOVE.W	(A3,D6.W),(A1)+	; COLOR REGISTER
-	MOVE.W	D1,(A1)+		; COLOR VALUE
 	LSR.W	D6		; GO BACK TO COUNTER
+	LSR.B	D1
+	MOVE.W	D1,(A1)+		; COLOR VALUE
 	DBRA	D6,.innerLoop
 	.skip:
 	DBRA	D7,.loop
@@ -200,7 +207,7 @@ __BLIT_GRADIENT_IN_COPPER:
 	LEA	GRADIENT_PTRS,A3
 	MOVE.L	(A3,D0.W),A4
 	ADD.W	#$4,D0
-	CMP.W	#COP_FRAMES*2*4-4,D0
+	CMP.W	#COP_FRAMES*4-4,D0
 	BLO.S	.dontReset
 	MOVE.W	#$0,D0
 	.dontReset:
@@ -312,7 +319,7 @@ __FILLRND:
 	BSR	._RandomByte
 	ROL.W	#8,D5
 	._RandomByte:	
-	MOVE.B	$DFF007,D5 ;$dff00a $dff00b for mouse pos
+	MOVE.B	$DFF007,D5	;$dff00a $dff00b for mouse pos
 	MOVE.B	$BFD800,D3
 	EOR.B	D3,D5
 	RTS
@@ -346,7 +353,8 @@ __HW_DISPLACE:
 
 	BTST	#6,$BFE001	; POTINP - LMB pressed?
 	BNE.S	.skip
-	;MOVE.B	D0,BPL1MOD
+	MOVE.B	D0,DDFSTRT
+	MOVE.B	D0,DDFSTOP
 	;MOVE.B	D0,BPL2MOD
 	LEA	LFO_NOISE,A0
 	.skip:
@@ -379,7 +387,7 @@ SCROLL_IDX:	DC.W 0
 LFO_SINE_1:	DC.W 1,1,1,2,2,2,3,4,4,5,5,6,6,7,7,7,7,7,7,6,6,5,5,4,4,3,2,2,2,1,1,1 
 LFO_NOISE:	DC.W 1,1,1,2,2,2,3,4,2,5,2,6,2,7,1,7,1,7,1,6,3,5,2,4,1,3,5,2,4,1,6,1 
 
-GRADIENT_REGISTERS:	DC.W $0180,$0188,$0198,$019A,$019C,$019E
+GRADIENT_REGISTERS:	DC.W $0180,$0182,$0184,$019A,$019C,$019E
 GRADIENT_INDEX:	DC.W 0
 GRADIENT_VALS:	INCLUDE "CopGradients.i"
 
@@ -391,6 +399,7 @@ GRADIENT_VALS:	INCLUDE "CopGradients.i"
 ;*******************************************************************************
 	SECTION	ChipData,DATA_C	;declared data that must be in chipmem
 ;*******************************************************************************
+		DC.L 0		; For PointPtr...
 TEST_GRID:	INCBIN "VHS_GRID_TEST.raw"
 OVERLAY:		INCBIN "H_BAR_TEST.raw"
 
@@ -413,7 +422,8 @@ COPPER:	; #### COPPERLIST ####################################################
 	;DC.W $102,$00	; SCROLL REGISTER (AND PLAYFIELD PRI)
 
 	.Palette:
-	DC.W $0180,$000f,$0182,$003e,$0184,$013d,$0186,$022F
+	;DC.W $0180,$011F,
+	DC.W $0182,$003E,$0184,$013D,$0186,$022F
 	DC.W $0188,$033A,$018A,$013F,$018C,$023F,$018E,$033F
 	DC.W $0190,$034F,$0192,$022D,$0194,$012B,$0196,$0354
 	DC.W $0198,$0174,$019A,$012A,$019C,$0239,$019E,$00F0
@@ -453,9 +463,9 @@ COPPER:	; #### COPPERLIST ####################################################
 ;*******************************************************************************
 	SECTION ChipBuffers,BSS_C	;BSS doesn't count toward exe size
 ;*******************************************************************************
-GRADIENT_PTRS:	DS.L COP_FRAMES*2
+GRADIENT_PTRS:	DS.L COP_FRAMES
 COPPER_BUFFER:	DS.W COP_FRAMES*(COP_BLIT_SIZE*COP_WAITS+2)	; +2 vpos >$FF
-DUMMY_0:		DS.B bypl
+DUMMY_0:		DS.B bypl*2
 PLANE_0:		DS.B he*bypl
 PLANE_1:		DS.B he*bypl
 DUMMY_2:		DS.B he/4*bypl

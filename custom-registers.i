@@ -5,6 +5,10 @@ BLTDDAT	= 0	;result of the last word. used for bob collision detection and
 		;MFM decoding
 DMACONR	= $DFF002	;bit 14=blitter busy flag
 
+;NEW...
+DDFSTRT	= $DFF092
+DDFSTOP	= $DFF094
+
 ;blitter operation setup
 BLTCON0	= $DFF040
 BLTCON1	= $DFF042
