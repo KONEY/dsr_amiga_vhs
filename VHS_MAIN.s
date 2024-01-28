@@ -13,10 +13,13 @@ bpls		EQU 6		; depth
 bypl		EQU wi/16*2	; byte-width of 1 bitplane line (40bytes)
 bwid		EQU bpls*bypl	; byte-width of 1 pixel line (all bpls)
 ;*******************************
-COP_WAITS		EQU 56
-COP_FRAMES	EQU 42
-COP_COLS_REGS	EQU 3
-COP_BLIT_SIZE	EQU COP_COLS_REGS*2+2
+DYNCOPPER		EQU 0
+	IFNE DYNCOPPER
+	COP_WAITS		EQU 56
+	COP_FRAMES	EQU 42
+	COP_COLS_REGS	EQU 3
+	COP_BLIT_SIZE	EQU COP_COLS_REGS*2+2
+	ENDC
 ;********** Demo **********	;Demo-specific non-startup code below.
 Demo:			;a4=VBR, a6=Custom Registers Base addr
 	;*--- init ---*
@@ -24,27 +27,28 @@ Demo:			;a4=VBR, a6=Custom Registers Base addr
 	MOVE.W	#%1110000000100000,INTENA
 	MOVE.W	#%1000001111100000,DMACON
 	;*--- start copper ---*
-	LEA	PLANE_0,A0
+	LEA	TEST_GRID,A0		; PF_1 OSD
+	LEA	80(A0),A0
 	LEA	COPPER\.BplPtrs,A1
 	BSR.W	PokePtrs
-	LEA	PLANE_2,A0
+	LEA	PLANE_1,A0		; PF_2 NOIZE
 	LEA	COPPER\.BplPtrs+8,A1
 	BSR.W	PokePtrs
-	LEA	TEST_GRID,A0
+	LEA	TEST_GRID,A0		; PF_1 OSD
+	LEA	-80(A0),A0
 	LEA	COPPER\.BplPtrs+16,A1
 	BSR.W	PokePtrs
-	LEA	TEST_GRID,A0
-	;LEA	-40(A0),A0
+	LEA	PLANE_3,A0		; PF_2 NOIZE
 	LEA	COPPER\.BplPtrs+24,A1
 	BSR.W	PokePtrs
-	LEA	TEST_GRID,A0
+	LEA	TEST_GRID,A0		; PF_1 OSD
 	LEA	COPPER\.BplPtrs+32,A1
 	BSR.W	PokePtrs
-	;LEA	OVERLAY,A0
-	LEA	PLANE_5,A0
+	LEA	PLANE_5,A0		; PF_2 NOIZE
 	LEA	COPPER\.BplPtrs+40,A1
 	BSR.W	PokePtrs
 
+	IFNE DYNCOPPER
 	; #### EXTRACT COPPERLISTS  ######
 	LEA	GRADIENT_VALS,A0
 	LEA	COPPER_BUFFER,A1	; COPPER_BUFFER
@@ -62,21 +66,19 @@ Demo:			;a4=VBR, a6=Custom Registers Base addr
 	;LEA	COPPER\.Waits,A1
 	;BSR.W	__DECRUNCH_COPPERLIST
 	; #### EXTRACT COPPERLISTS  ######
-	; #### CPU INTENSIVE TASKS BEFORE STARTING MUSIC
 	LEA	COPPER_BUFFER,A4
 	LEA	COPPER\.Waits,A5
 	BSR.W	__BLIT_GRADIENT_IN_COPPER
-	; ################################
-	MOVE.L	#COPPER,COP1LC
-	; ################################
-	LEA	PLANE_0,A4	; FILLS A PLANE
-	BSR.W	__FILLRND		; SOME DUMMY OPERATION...
+	ENDC
 
+	MOVE.L	#COPPER,COP1LC	; ## POINT COPPERLIST ##
+	; #### CPU INTENSIVE TASKS BEFORE STARTING MUSIC	
 	LEA	PLANE_1,A4	; FILLS A PLANE
 	BSR.W	__FILLRND		; SOME DUMMY OPERATION...
-
-	;LEA	PLANE_2,A4	; FILLS A PLANE
-	;BSR.W	__FILLRND		; SOME DUMMY OPERATION...
+	LEA	PLANE_3,A4	; FILLS A PLANE
+	BSR.W	__FILLRND		; SOME DUMMY OPERATION...
+	LEA	PLANE_5,A4	; FILLS A PLANE
+	BSR.W	__FILLRND		; SOME DUMMY OPERATION...
 
 	;LEA	PLANE_5,A4	; FILLS A PLANE
 	;MOVE.L	#$500000F5,D0
@@ -90,7 +92,6 @@ Demo:			;a4=VBR, a6=Custom Registers Base addr
 	; in photon's wrapper comment:;move.w d2,$9a(a6) ;INTENA
 	;MOVE.W	#27,MED_START_POS	; skip to pos# after first block
 	;JSR	_startmusic
-
 ;********************  main loop  ********************
 MainLoop:	
 	;BTST	#6,$BFE001	; POTINP - LMB pressed?
@@ -100,27 +101,30 @@ MainLoop:
 	;;MOVE.W	D5,NOISE_SEED_0
 	;ADD.B	#2,NOISE_SEED_0
 	;.skip:
+
+	IFNE DYNCOPPER
 	BSR.W	__BLIT_GRADIENT_IN_COPPER
+	ENDC
 
 	TST.B	FRAME_STROBE
 	BNE.W	.oddFrame
 	MOVE.B	#1,FRAME_STROBE
-	LEA	PLANE_0,A0
-	LEA	PLANE_1,A2
+	LEA	PLANE_1,A0
+	LEA	PLANE_5,A2
+	LEA	COPPER\.BplPtrs+40,A1
 	BRA.W	.evenFrame
 	.oddFrame:
 	MOVE.B	#0,FRAME_STROBE
-	LEA	PLANE_0,A2
-	LEA	PLANE_1,A0
+	LEA	PLANE_3,A2
+	LEA	PLANE_5,A0
+	LEA	COPPER\.BplPtrs+24,A1
 	.evenFrame:
-
 	CLR.L	D5
 	MOVE.B	NOISE_SEED_1,D5
 	BCLR	#0,D5
 	ADD.L	D5,A0
-	LEA	COPPER\.BplPtrs,A1
 	BSR.W	PokePtrs
-	ADD.B	#bypl,D5
+	ADD.B	#bypl*2,D5
 	ADD.L	D5,A2
 	MOVE.B	(A2),NOISE_SEED_1
 
@@ -166,7 +170,8 @@ VBint:				; Blank template VERTB interrupt
 	movem.l	(sp)+,d0/a6	; restore
 	rte
 
-__DECRUNCH_COPPERLIST:
+	IFNE DYNCOPPER
+	__DECRUNCH_COPPERLIST:
 	MOVE.W	#COP_WAITS,D7
 	.loop:
 	TST.W	(A0)		; ZEROED WORD = allow VPOS>$ff
@@ -201,8 +206,9 @@ __DECRUNCH_COPPERLIST:
 	.skip:
 	DBRA	D7,.loop
 	RTS
-
-__BLIT_GRADIENT_IN_COPPER:
+	ENDC
+	IFNE DYNCOPPER
+	__BLIT_GRADIENT_IN_COPPER:
 	MOVE.W	GRADIENT_INDEX,D0
 	LEA	GRADIENT_PTRS,A3
 	MOVE.L	(A3,D0.W),A4
@@ -223,6 +229,7 @@ __BLIT_GRADIENT_IN_COPPER:
 	MOVE.L	A5,BLTDPTH
 	MOVE.W	#(COP_WAITS<<6)+COP_BLIT_SIZE,BLTSIZE
 	RTS
+	ENDC
 
 __RANDOMIZE_PLANE:
 	;SWAP	D5
@@ -299,7 +306,7 @@ __FILLSOLID:
 	BSR	._RandomByte
 	ROL.W	#8,D5
 	._RandomByte:	
-	MOVE.B	$DFF007,D5 ;$dff00a $dff00b for mouse pos
+	MOVE.B	$DFF007,D5	;$dff00a $dff00b for mouse pos
 	MOVE.B	$BFD800,D3
 	EOR.B	D3,D5
 	RTS
@@ -331,15 +338,15 @@ __HW_DISPLACE:
 	AND.W	#$3F-1,D0
 	MOVE.W	D0,SCROLL_IDX
 	CLR.L	D2
-	MOVE.W	$DFF006,D4	; for bug?
+	MOVE.W	VHPOSR,D4	; for bug?
 	.waitVisibleRaster:
-	MOVE.W	$DFF006,D4
+	MOVE.W	VHPOSR,D4
 	AND.W	#$FF00,D4		; read vertical beam
 	CMP.W	#$3700,D4		; 2C
 	BNE.S	.waitVisibleRaster
 
 	.waitNextRaster:
-	MOVE.W	$DFF006,D2
+	MOVE.W	VHPOSR,D2
 	AND.W	#$FF00,D2		; read vertical beam
 	CMP.W	D4,D2
 	BEQ.S	.waitNextRaster
@@ -354,8 +361,8 @@ __HW_DISPLACE:
 	BTST	#6,$BFE001	; POTINP - LMB pressed?
 	BNE.S	.skip
 	MOVE.B	D0,DDFSTRT
-	MOVE.B	D0,DDFSTOP
-	;MOVE.B	D0,BPL2MOD
+	;MOVE.B	D0,DDFSTOP
+	;MOVE.W	D0,BPL2MOD
 	LEA	LFO_NOISE,A0
 	.skip:
 
@@ -363,7 +370,7 @@ __HW_DISPLACE:
 	ADD.W	#$2,D0
 	AND.W	#$3F-1,D0
 
-	MOVE.W	$DFF004,D1	; Read vert most sig. bits
+	MOVE.W	VPOSR,D1		; Read vert most sig. bits
 	BTST	#0,D1
 	BEQ.S	.waitNextRaster
 
@@ -377,7 +384,7 @@ __HW_DISPLACE:
 	BNE.S	.waitNextRaster
 
 	;MOVE.W	#0,BPLCON1	; RESET REGISTER
-	;MOVE.L	#0,$DFF108	; RESET
+	;MOVE.L	#0,BPL1MOD	; RESET
 	RTS
 
 FRAME_STROBE:	DC.B 0,0
@@ -387,21 +394,22 @@ SCROLL_IDX:	DC.W 0
 LFO_SINE_1:	DC.W 1,1,1,2,2,2,3,4,4,5,5,6,6,7,7,7,7,7,7,6,6,5,5,4,4,3,2,2,2,1,1,1 
 LFO_NOISE:	DC.W 1,1,1,2,2,2,3,4,2,5,2,6,2,7,1,7,1,7,1,6,3,5,2,4,1,3,5,2,4,1,6,1 
 
-GRADIENT_REGISTERS:	DC.W $0180,$0182,$0184,$019A,$019C,$019E
-GRADIENT_INDEX:	DC.W 0
-GRADIENT_VALS:	INCLUDE "CopGradients.i"
+	IFNE DYNCOPPER
+	GRADIENT_REGISTERS:	DC.W $0180,$0182,$0184,$019A,$019C,$019E
+	GRADIENT_INDEX:	DC.W 0
+	GRADIENT_VALS:	INCLUDE "CopGradients.i"
+	ENDC
 
 ;FONT:		DC.L 0,0		; SPACE CHAR
 ;		INCBIN "c_font_leftpadding2.raw";,0
 		EVEN
 ;TEXT:		INCLUDE "textscroller.i"
-
 ;*******************************************************************************
 	SECTION	ChipData,DATA_C	;declared data that must be in chipmem
 ;*******************************************************************************
-		DC.L 0		; For PointPtr...
+		DS.B he*8		; For PointPtr...
 TEST_GRID:	INCBIN "VHS_GRID_TEST.raw"
-OVERLAY:		INCBIN "H_BAR_TEST.raw"
+		DS.B he*8		; For PointPtr...
 
 ;MED_MODULE:	INCBIN "med/RustEater_2022_FIX4.med"
 ;_chipzero:	DC.L 0
@@ -422,15 +430,11 @@ COPPER:	; #### COPPERLIST ####################################################
 	;DC.W $102,$00	; SCROLL REGISTER (AND PLAYFIELD PRI)
 
 	.Palette:
-	;DC.W $0180,$011F,
-	DC.W $0182,$003E,$0184,$013D,$0186,$022F
-	DC.W $0188,$033A,$018A,$013F,$018C,$023F,$018E,$033F
-	DC.W $0190,$034F,$0192,$022D,$0194,$012B,$0196,$0354
-	DC.W $0198,$0174,$019A,$012A,$019C,$0239,$019E,$00F0
-	DC.W $01A0,$068F,$01A2,$0469,$01A4,$0F0F,$01A6,$0CDB
-	DC.W $01A8,$0FFF,$01AA,$0FFF,$01AC,$0FFF,$01AE,$0FFF
-	DC.W $01B0,$0FFF,$01B2,$0FFF,$01B4,$0FFF,$01B6,$0FFF
-	DC.W $01B8,$0FFF,$01BA,$0FFF,$01BC,$0FFF,$01BE,$0FFF
+	DC.W $0180,$001E,$0182,$00d0,$0184,$0d0d,$0186,$00FF
+	DC.W $0188,$0FFF,$018A,$0DEF,$018C,$0DDD,$018E,$0CDE
+
+	DC.W $0190,$0000,$0192,$004E,$0194,$033C,$0196,$032F
+	DC.W $0198,$022F,$019A,$003F,$019C,$002C,$019E,$031F
 
 	.SpritePointers:
 	DC.W $0120,0,$122,0	; 0
@@ -449,13 +453,492 @@ COPPER:	; #### COPPERLIST ####################################################
 	DC.W $EC,0,$EE,0
 	DC.W $F0,0,$F2,0
 	DC.W $F4,0,$F6,0		;full 6 ptrs, in case you increase bpls
-	DC.W $100,bpls*$1000+$200	;enable bitplanes
-	;DC.W $100,bpls*$1000+%011000000000
+	DC.W $100,bpls*$1000+$600	;enable bitplanes
+	;DC.W $104,%0000000001000000	; BPLCON2
 
+	IFNE DYNCOPPER
 	.Waits:
 	DS.W COP_BLIT_SIZE*COP_WAITS+2	; +2 vpos >$FF
+	ENDC
 
+	; https://gradient-blaster.grahambates.com/?points=119@0,216@17,11a@38,222@62,214@97,117@132,114@155,222@213,115@244,214@255&steps=256&blendMode=lab&ditherMode=ordered&target=amigaOcs&ditherAmount=100
+	Gradient:
+	dc.w $194,$019
+	dc.w $2d07,$fffe
+	dc.w $194,$109
+	dc.w $2e07,$fffe
+	dc.w $194,$119
+	dc.w $2f07,$fffe
+	dc.w $194,$109
+	dc.w $3007,$fffe
+	dc.w $194,$118
+	dc.w $3107,$fffe
+	dc.w $194,$208
+	dc.w $3207,$fffe
+	dc.w $194,$118
+	dc.w $3307,$fffe
+	dc.w $194,$208
+	dc.w $3407,$fffe
+	dc.w $194,$117
+	dc.w $3507,$fffe
+	dc.w $194,$108
+	dc.w $3607,$fffe
+	dc.w $194,$117
+	dc.w $3707,$fffe
+	dc.w $194,$207
+	dc.w $3807,$fffe
+	dc.w $194,$117
+	dc.w $3907,$fffe
+	dc.w $194,$207
+	dc.w $3a07,$fffe
+	dc.w $194,$116
+	dc.w $3b07,$fffe
+	dc.w $194,$207
+	dc.w $3c07,$fffe
+	dc.w $194,$116
+	dc.w $3d07,$fffe
+	dc.w $194,$206
+	dc.w $3e07,$fffe
+	dc.w $194,$116
+	dc.w $3f07,$fffe
+	dc.w $194,$207
+	dc.w $4007,$fffe
+	dc.w $194,$116
+	dc.w $4107,$fffe
+	dc.w $194,$207
+	dc.w $4207,$fffe
+	dc.w $194,$117
+	dc.w $4307,$fffe
+	dc.w $194,$207
+	dc.w $4407,$fffe
+	dc.w $194,$217
+	dc.w $4507,$fffe
+	dc.w $194,$208
+	dc.w $4607,$fffe
+	dc.w $194,$117
+	dc.w $4707,$fffe
+	dc.w $194,$208
+	dc.w $4807,$fffe
+	dc.w $194,$118
+	dc.w $4907,$fffe
+	dc.w $194,$109
+	dc.w $4a07,$fffe
+	dc.w $194,$118
+	dc.w $4b07,$fffe
+	dc.w $194,$209
+	dc.w $4c07,$fffe
+	dc.w $194,$119
+	dc.w $4d07,$fffe
+	dc.w $194,$109
+	dc.w $4e07,$fffe
+	dc.w $194,$119
+	dc.w $4f07,$fffe
+	dc.w $194,$10a
+	dc.w $5007,$fffe
+	dc.w $194,$01a
+	dc.w $5107,$fffe
+	dc.w $194,$10a
+	dc.w $5207,$fffe
+	dc.w $194,$01a
+	dc.w $5307,$fffe
+	dc.w $194,$10a
+	dc.w $5407,$fffe
+	dc.w $194,$119
+	dc.w $5507,$fffe
+	dc.w $194,$219
+	dc.w $5607,$fffe
+	dc.w $194,$118
+	dc.w $5707,$fffe
+	dc.w $194,$219
+	dc.w $5807,$fffe
+	dc.w $194,$218
+	dc.w $5a07,$fffe
+	dc.w $194,$217
+	dc.w $5b07,$fffe
+	dc.w $194,$317
+	dc.w $5c07,$fffe
+	dc.w $194,$226
+	dc.w $5d07,$fffe
+	dc.w $194,$316
+	dc.w $5e07,$fffe
+	dc.w $194,$226
+	dc.w $5f07,$fffe
+	dc.w $194,$316
+	dc.w $6007,$fffe
+	dc.w $194,$225
+	dc.w $6107,$fffe
+	dc.w $194,$215
+	dc.w $6207,$fffe
+	dc.w $194,$224
+	dc.w $6307,$fffe
+	dc.w $194,$314
+	dc.w $6407,$fffe
+	dc.w $194,$223
+	dc.w $6507,$fffe
+	dc.w $194,$214
+	dc.w $6607,$fffe
+	dc.w $194,$223
+	dc.w $6707,$fffe
+	dc.w $194,$213
+	dc.w $6807,$fffe
+	dc.w $194,$222
+	dc.w $6907,$fffe
+	dc.w $194,$212
+	dc.w $6a07,$fffe
+	dc.w $194,$121
+	dc.w $6b07,$fffe
+	dc.w $194,$212
+	dc.w $6c07,$fffe
+	dc.w $194,$122
+	dc.w $6d07,$fffe
+	dc.w $194,$212
+	dc.w $6e07,$fffe
+	dc.w $194,$222
+	dc.w $6f07,$fffe
+	dc.w $194,$212
+	dc.w $7007,$fffe
+	dc.w $194,$222
+	dc.w $7107,$fffe
+	dc.w $194,$212
+	dc.w $7207,$fffe
+	dc.w $194,$222
+	dc.w $7307,$fffe
+	dc.w $194,$213
+	dc.w $7407,$fffe
+	dc.w $194,$122
+	dc.w $7507,$fffe
+	dc.w $194,$213
+	dc.w $7607,$fffe
+	dc.w $194,$222
+	dc.w $7707,$fffe
+	dc.w $194,$213
+	dc.w $7807,$fffe
+	dc.w $194,$222
+	dc.w $7907,$fffe
+	dc.w $194,$213
+	dc.w $7a07,$fffe
+	dc.w $194,$212
+	dc.w $7b07,$fffe
+	dc.w $194,$213
+	dc.w $8007,$fffe
+	dc.w $194,$113
+	dc.w $8107,$fffe
+	dc.w $194,$213
+	dc.w $8507,$fffe
+	dc.w $194,$214
+	dc.w $8607,$fffe
+	dc.w $194,$213
+	dc.w $8707,$fffe
+	dc.w $194,$214
+	dc.w $8807,$fffe
+	dc.w $194,$113
+	dc.w $8907,$fffe
+	dc.w $194,$214
+	dc.w $8a07,$fffe
+	dc.w $194,$213
+	dc.w $8b07,$fffe
+	dc.w $194,$204
+	dc.w $8c07,$fffe
+	dc.w $194,$113
+	dc.w $8d07,$fffe
+	dc.w $194,$204
+	dc.w $8e07,$fffe
+	dc.w $194,$114
+	dc.w $8f07,$fffe
+	dc.w $194,$204
+	dc.w $9007,$fffe
+	dc.w $194,$114
+	dc.w $9107,$fffe
+	dc.w $194,$204
+	dc.w $9207,$fffe
+	dc.w $194,$114
+	dc.w $9307,$fffe
+	dc.w $194,$205
+	dc.w $9407,$fffe
+	dc.w $194,$114
+	dc.w $9507,$fffe
+	dc.w $194,$205
+	dc.w $9607,$fffe
+	dc.w $194,$114
+	dc.w $9707,$fffe
+	dc.w $194,$205
+	dc.w $9807,$fffe
+	dc.w $194,$115
+	dc.w $9907,$fffe
+	dc.w $194,$205
+	dc.w $9a07,$fffe
+	dc.w $194,$115
+	dc.w $9b07,$fffe
+	dc.w $194,$205
+	dc.w $9c07,$fffe
+	dc.w $194,$115
+	dc.w $9d07,$fffe
+	dc.w $194,$205
+	dc.w $9e07,$fffe
+	dc.w $194,$115
+	dc.w $9f07,$fffe
+	dc.w $194,$206
+	dc.w $a007,$fffe
+	dc.w $194,$115
+	dc.w $a107,$fffe
+	dc.w $194,$206
+	dc.w $a207,$fffe
+	dc.w $194,$115
+	dc.w $a307,$fffe
+	dc.w $194,$206
+	dc.w $a407,$fffe
+	dc.w $194,$116
+	dc.w $a507,$fffe
+	dc.w $194,$106
+	dc.w $a607,$fffe
+	dc.w $194,$116
+	dc.w $a707,$fffe
+	dc.w $194,$206
+	dc.w $a807,$fffe
+	dc.w $194,$116
+	dc.w $a907,$fffe
+	dc.w $194,$107
+	dc.w $aa07,$fffe
+	dc.w $194,$116
+	dc.w $ab07,$fffe
+	dc.w $194,$107
+	dc.w $ac07,$fffe
+	dc.w $194,$116
+	dc.w $ad07,$fffe
+	dc.w $194,$107
+	dc.w $ae07,$fffe
+	dc.w $194,$017
+	dc.w $af07,$fffe
+	dc.w $194,$107
+	dc.w $b007,$fffe
+	dc.w $194,$017
+	dc.w $b107,$fffe
+	dc.w $194,$107
+	dc.w $b207,$fffe
+	dc.w $194,$016
+	dc.w $b307,$fffe
+	dc.w $194,$107
+	dc.w $b407,$fffe
+	dc.w $194,$116
+	dc.w $b507,$fffe
+	dc.w $194,$106
+	dc.w $b607,$fffe
+	dc.w $194,$016
+	dc.w $b707,$fffe
+	dc.w $194,$106
+	dc.w $b807,$fffe
+	dc.w $194,$116
+	dc.w $b907,$fffe
+	dc.w $194,$106
+	dc.w $ba07,$fffe
+	dc.w $194,$015
+	dc.w $bb07,$fffe
+	dc.w $194,$106
+	dc.w $bc07,$fffe
+	dc.w $194,$015
+	dc.w $bd07,$fffe
+	dc.w $194,$105
+	dc.w $be07,$fffe
+	dc.w $194,$015
+	dc.w $bf07,$fffe
+	dc.w $194,$105
+	dc.w $c007,$fffe
+	dc.w $194,$014
+	dc.w $c107,$fffe
+	dc.w $194,$105
+	dc.w $c207,$fffe
+	dc.w $194,$014
+	dc.w $c307,$fffe
+	dc.w $194,$105
+	dc.w $c407,$fffe
+	dc.w $194,$014
+	dc.w $c507,$fffe
+	dc.w $194,$104
+	dc.w $c607,$fffe
+	dc.w $194,$014
+	dc.w $c707,$fffe
+	dc.w $194,$104
+	dc.w $c807,$fffe
+	dc.w $194,$014
+	dc.w $c907,$fffe
+	dc.w $194,$104
+	dc.w $ca07,$fffe
+	dc.w $194,$014
+	dc.w $cb07,$fffe
+	dc.w $194,$104
+	dc.w $cc07,$fffe
+	dc.w $194,$113
+	dc.w $cd07,$fffe
+	dc.w $194,$104
+	dc.w $ce07,$fffe
+	dc.w $194,$113
+	dc.w $cf07,$fffe
+	dc.w $194,$104
+	dc.w $d007,$fffe
+	dc.w $194,$113
+	dc.w $d107,$fffe
+	dc.w $194,$114
+	dc.w $d207,$fffe
+	dc.w $194,$113
+	dc.w $d307,$fffe
+	dc.w $194,$114
+	dc.w $d407,$fffe
+	dc.w $194,$113
+	dc.w $d507,$fffe
+	dc.w $194,$114
+	dc.w $d607,$fffe
+	dc.w $194,$113
+	dc.w $db07,$fffe
+	dc.w $194,$213
+	dc.w $dc07,$fffe
+	dc.w $194,$113
+	dc.w $e107,$fffe
+	dc.w $194,$213
+	dc.w $e207,$fffe
+	dc.w $194,$113
+	dc.w $e307,$fffe
+	dc.w $194,$213
+	dc.w $e407,$fffe
+	dc.w $194,$112
+	dc.w $e507,$fffe
+	dc.w $194,$213
+	dc.w $e607,$fffe
+	dc.w $194,$112
+	dc.w $e707,$fffe
+	dc.w $194,$213
+	dc.w $e807,$fffe
+	dc.w $194,$112
+	dc.w $e907,$fffe
+	dc.w $194,$213
+	dc.w $ea07,$fffe
+	dc.w $194,$112
+	dc.w $eb07,$fffe
+	dc.w $194,$213
+	dc.w $ec07,$fffe
+	dc.w $194,$122
+	dc.w $ed07,$fffe
+	dc.w $194,$213
+	dc.w $ee07,$fffe
+	dc.w $194,$122
+	dc.w $ef07,$fffe
+	dc.w $194,$213
+	dc.w $f007,$fffe
+	dc.w $194,$122
+	dc.w $f107,$fffe
+	dc.w $194,$213
+	dc.w $f207,$fffe
+	dc.w $194,$122
+	dc.w $f307,$fffe
+	dc.w $194,$212
+	dc.w $f407,$fffe
+	dc.w $194,$122
+	dc.w $f507,$fffe
+	dc.w $194,$212
+	dc.w $f607,$fffe
+	dc.w $194,$122
+	dc.w $f707,$fffe
+	dc.w $194,$212
+	dc.w $f807,$fffe
+	dc.w $194,$122
+	dc.w $f907,$fffe
+	dc.w $194,$212
+	dc.w $fa07,$fffe
+	dc.w $194,$122
+	dc.w $fb07,$fffe
+	dc.w $194,$212
+	dc.w $fc07,$fffe
+	dc.w $194,$122
+	dc.w $fd07,$fffe
+	dc.w $194,$212
+	dc.w $fe07,$fffe
+	dc.w $194,$122
+	dc.w $ff07,$fffe
+	dc.w $194,$212
+	dc.w $ffdf,$fffe ; PAL fix
+	dc.w $007,$fffe
+	dc.w $194,$121
+	dc.w $107,$fffe
+	dc.w $194,$212
+	dc.w $207,$fffe
+	dc.w $194,$121
+	dc.w $307,$fffe
+	dc.w $194,$212
+	dc.w $407,$fffe
+	dc.w $194,$122
+	dc.w $507,$fffe
+	dc.w $194,$212
+	dc.w $607,$fffe
+	dc.w $194,$122
+	dc.w $707,$fffe
+	dc.w $194,$213
+	dc.w $807,$fffe
+	dc.w $194,$222
+	dc.w $907,$fffe
+	dc.w $194,$213
+	dc.w $a07,$fffe
+	dc.w $194,$122
+	dc.w $b07,$fffe
+	dc.w $194,$213
+	dc.w $c07,$fffe
+	dc.w $194,$122
+	dc.w $d07,$fffe
+	dc.w $194,$213
+	dc.w $e07,$fffe
+	dc.w $194,$113
+	dc.w $f07,$fffe
+	dc.w $194,$213
+	dc.w $1007,$fffe
+	dc.w $194,$113
+	dc.w $1107,$fffe
+	dc.w $194,$214
+	dc.w $1207,$fffe
+	dc.w $194,$113
+	dc.w $1307,$fffe
+	dc.w $194,$214
+	dc.w $1407,$fffe
+	dc.w $194,$113
+	dc.w $1507,$fffe
+	dc.w $194,$214
+	dc.w $1607,$fffe
+	dc.w $194,$114
+	dc.w $1b07,$fffe
+	dc.w $194,$115
+	dc.w $1c07,$fffe
+	dc.w $194,$114
+	dc.w $1d07,$fffe
+	dc.w $194,$105
+	dc.w $1e07,$fffe
+	dc.w $194,$114
+	dc.w $1f07,$fffe
+	dc.w $194,$105
+	dc.w $2007,$fffe
+	dc.w $194,$015
+	dc.w $2107,$fffe
+	dc.w $194,$105
+	dc.w $2207,$fffe
+	dc.w $194,$014
+	dc.w $2307,$fffe
+	dc.w $194,$105
+	dc.w $2407,$fffe
+	dc.w $194,$114
+	dc.w $2507,$fffe
+	dc.w $194,$105
+	dc.w $2607,$fffe
+	dc.w $194,$114
+	dc.w $2707,$fffe
+	dc.w $194,$204
+	dc.w $2807,$fffe
+	dc.w $194,$114
+	dc.w $2907,$fffe
+	dc.w $194,$204
+	dc.w $2a07,$fffe
+	dc.w $194,$114
+	dc.w $2b07,$fffe
+	dc.w $194,$204
+
+	IFEQ DYNCOPPER
 	;DC.W $FFDF,$FFFE		; allow VPOS>$ff
+	ENDC
 	DC.W $3507,$FF00		; ## RASTER END ## #$12C?
 	DC.W $009A,$0010		; CLEAR RASTER BUSY FLAG
 	DC.W $FFFF,$FFFE		; magic value to end copperlist
@@ -463,15 +946,13 @@ COPPER:	; #### COPPERLIST ####################################################
 ;*******************************************************************************
 	SECTION ChipBuffers,BSS_C	;BSS doesn't count toward exe size
 ;*******************************************************************************
-GRADIENT_PTRS:	DS.L COP_FRAMES
-COPPER_BUFFER:	DS.W COP_FRAMES*(COP_BLIT_SIZE*COP_WAITS+2)	; +2 vpos >$FF
-DUMMY_0:		DS.B bypl*2
-PLANE_0:		DS.B he*bypl
+	IFNE DYNCOPPER
+	GRADIENT_PTRS:	DS.L COP_FRAMES
+	COPPER_BUFFER:	DS.W COP_FRAMES*(COP_BLIT_SIZE*COP_WAITS+2)	; +2 vpos >$FF
+	ENDC
+DUMMY_0:		DS.B he/4*bypl
 PLANE_1:		DS.B he*bypl
-DUMMY_2:		DS.B he/4*bypl
-PLANE_2:		DS.B he*bypl
 PLANE_3:		DS.B he*bypl
-PLANE_4:		DS.B he*bypl
 PLANE_5:		DS.B he*bypl
 
 END
