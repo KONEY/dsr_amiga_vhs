@@ -94,13 +94,11 @@ Demo:			;a4=VBR, a6=Custom Registers Base addr
 	;JSR	_startmusic
 ;********************  main loop  ********************
 MainLoop:	
-	;BTST	#6,$BFE001	; POTINP - LMB pressed?
-	;BNE.S	.skip
+	BTST	#6,$BFE001	; POTINP - LMB pressed?
+	BNE.S	.skip
 	;MOVE.W	#$0A0F,$DFF180	; show rastertime left down to $12c
 	;;BSR.W	__RND
-	;;MOVE.W	D5,NOISE_SEED_0
-	;ADD.B	#2,NOISE_SEED_0
-	;.skip:
+	.skip:
 
 	IFNE DYNCOPPER
 	BSR.W	__BLIT_GRADIENT_IN_COPPER
@@ -359,11 +357,27 @@ __HW_DISPLACE:
 	;MOVE.W	D5,BPLCON1
 
 	BTST	#6,$BFE001	; POTINP - LMB pressed?
-	BNE.S	.skip
-	MOVE.B	D0,DDFSTRT
+	BNE.W	.skip
+	;MOVE.B	D0,DDFSTRT
 	;MOVE.B	D0,DDFSTOP
 	;MOVE.W	D0,BPL2MOD
-	LEA	LFO_NOISE,A0
+	;LEA	LFO_NOISE,A0
+	MOVE.W	#bpls*$1000+$A00,BPLCON0	; HAM!?!
+	MOVE.L	#$0A010000,$DFF182
+	MOVE.L	#$0A010000,$DFF186
+	MOVE.L	#$0A010330,$DFF18A
+	MOVE.L	#$0A010000,$DFF18E
+	MOVE.L	#$0A010000,$DFF192
+	MOVE.L	#$0A010000,$DFF196
+	MOVE.L	#$0A010000,$DFF19A
+	MOVE.L	#$0A010000,$DFF19E
+	MOVE.L	#$0A010000,$DFF1A2
+	MOVE.L	#$0A010000,$DFF1A6
+	MOVE.L	#$0A010330,$DFF1AA
+	MOVE.L	#$0A010330,$DFF1AE
+	MOVE.L	#$0A010000,$DFF1B2
+	MOVE.L	#$0A010000,$DFF1B6
+	MOVE.L	#$0A01000D,$DFF1BA
 	.skip:
 
 	MOVE.W	(A0,D0.W),BPLCON1	; 19DEA68E GLITCHA
@@ -372,7 +386,7 @@ __HW_DISPLACE:
 
 	MOVE.W	VPOSR,D1		; Read vert most sig. bits
 	BTST	#0,D1
-	BEQ.S	.waitNextRaster
+	BEQ.W	.waitNextRaster
 
 	;CMP.W	#$0A00,D2		; DONT DISPLACE TXT
 	;BGE.S	.dontSkip		; DONT DISPLACE TXT
@@ -381,7 +395,7 @@ __HW_DISPLACE:
 	;
 	;.dontSkip:
 	CMP.W	#$2F00,D2		; 12.032
-	BNE.S	.waitNextRaster
+	BNE.W	.waitNextRaster
 
 	;MOVE.W	#0,BPLCON1	; RESET REGISTER
 	;MOVE.L	#0,BPL1MOD	; RESET
@@ -430,11 +444,16 @@ COPPER:	; #### COPPERLIST ####################################################
 	;DC.W $102,$00	; SCROLL REGISTER (AND PLAYFIELD PRI)
 
 	.Palette:
-	DC.W $0180,$001E,$0182,$00d0,$0184,$0d0d,$0186,$00FF
+	DC.W $0180,$001E,$0182,$00D0,$0184,$0D0D,$0186,$00FF
 	DC.W $0188,$0FFF,$018A,$0DEF,$018C,$0DDD,$018E,$0CDE
 
 	DC.W $0190,$0000,$0192,$004E,$0194,$033C,$0196,$032F
 	DC.W $0198,$022F,$019A,$003F,$019C,$002C,$019E,$031F
+
+	DC.W $01A0,$000D,$01A2,$000C,$01A4,$0048,$01A6,$0048
+	DC.W $01A8,$0158,$01AA,$025C,$01AC,$014E,$01AE,$0FFF
+	DC.W $01B0,$045D,$01B2,$005A,$01B4,$004F,$01B6,$004F
+	DC.W $01B8,$0DDD,$01BA,$00F0,$01BC,$0CCC,$01BE,$0BAB
 
 	.SpritePointers:
 	DC.W $0120,0,$122,0	; 0
@@ -461,483 +480,8 @@ COPPER:	; #### COPPERLIST ####################################################
 	DS.W COP_BLIT_SIZE*COP_WAITS+2	; +2 vpos >$FF
 	ENDC
 
-	; https://gradient-blaster.grahambates.com/?points=119@0,216@17,11a@38,222@62,214@97,117@132,114@155,222@213,115@244,214@255&steps=256&blendMode=lab&ditherMode=ordered&target=amigaOcs&ditherAmount=100
-	Gradient:
-	dc.w $194,$019
-	dc.w $2d07,$fffe
-	dc.w $194,$109
-	dc.w $2e07,$fffe
-	dc.w $194,$119
-	dc.w $2f07,$fffe
-	dc.w $194,$109
-	dc.w $3007,$fffe
-	dc.w $194,$118
-	dc.w $3107,$fffe
-	dc.w $194,$208
-	dc.w $3207,$fffe
-	dc.w $194,$118
-	dc.w $3307,$fffe
-	dc.w $194,$208
-	dc.w $3407,$fffe
-	dc.w $194,$117
-	dc.w $3507,$fffe
-	dc.w $194,$108
-	dc.w $3607,$fffe
-	dc.w $194,$117
-	dc.w $3707,$fffe
-	dc.w $194,$207
-	dc.w $3807,$fffe
-	dc.w $194,$117
-	dc.w $3907,$fffe
-	dc.w $194,$207
-	dc.w $3a07,$fffe
-	dc.w $194,$116
-	dc.w $3b07,$fffe
-	dc.w $194,$207
-	dc.w $3c07,$fffe
-	dc.w $194,$116
-	dc.w $3d07,$fffe
-	dc.w $194,$206
-	dc.w $3e07,$fffe
-	dc.w $194,$116
-	dc.w $3f07,$fffe
-	dc.w $194,$207
-	dc.w $4007,$fffe
-	dc.w $194,$116
-	dc.w $4107,$fffe
-	dc.w $194,$207
-	dc.w $4207,$fffe
-	dc.w $194,$117
-	dc.w $4307,$fffe
-	dc.w $194,$207
-	dc.w $4407,$fffe
-	dc.w $194,$217
-	dc.w $4507,$fffe
-	dc.w $194,$208
-	dc.w $4607,$fffe
-	dc.w $194,$117
-	dc.w $4707,$fffe
-	dc.w $194,$208
-	dc.w $4807,$fffe
-	dc.w $194,$118
-	dc.w $4907,$fffe
-	dc.w $194,$109
-	dc.w $4a07,$fffe
-	dc.w $194,$118
-	dc.w $4b07,$fffe
-	dc.w $194,$209
-	dc.w $4c07,$fffe
-	dc.w $194,$119
-	dc.w $4d07,$fffe
-	dc.w $194,$109
-	dc.w $4e07,$fffe
-	dc.w $194,$119
-	dc.w $4f07,$fffe
-	dc.w $194,$10a
-	dc.w $5007,$fffe
-	dc.w $194,$01a
-	dc.w $5107,$fffe
-	dc.w $194,$10a
-	dc.w $5207,$fffe
-	dc.w $194,$01a
-	dc.w $5307,$fffe
-	dc.w $194,$10a
-	dc.w $5407,$fffe
-	dc.w $194,$119
-	dc.w $5507,$fffe
-	dc.w $194,$219
-	dc.w $5607,$fffe
-	dc.w $194,$118
-	dc.w $5707,$fffe
-	dc.w $194,$219
-	dc.w $5807,$fffe
-	dc.w $194,$218
-	dc.w $5a07,$fffe
-	dc.w $194,$217
-	dc.w $5b07,$fffe
-	dc.w $194,$317
-	dc.w $5c07,$fffe
-	dc.w $194,$226
-	dc.w $5d07,$fffe
-	dc.w $194,$316
-	dc.w $5e07,$fffe
-	dc.w $194,$226
-	dc.w $5f07,$fffe
-	dc.w $194,$316
-	dc.w $6007,$fffe
-	dc.w $194,$225
-	dc.w $6107,$fffe
-	dc.w $194,$215
-	dc.w $6207,$fffe
-	dc.w $194,$224
-	dc.w $6307,$fffe
-	dc.w $194,$314
-	dc.w $6407,$fffe
-	dc.w $194,$223
-	dc.w $6507,$fffe
-	dc.w $194,$214
-	dc.w $6607,$fffe
-	dc.w $194,$223
-	dc.w $6707,$fffe
-	dc.w $194,$213
-	dc.w $6807,$fffe
-	dc.w $194,$222
-	dc.w $6907,$fffe
-	dc.w $194,$212
-	dc.w $6a07,$fffe
-	dc.w $194,$121
-	dc.w $6b07,$fffe
-	dc.w $194,$212
-	dc.w $6c07,$fffe
-	dc.w $194,$122
-	dc.w $6d07,$fffe
-	dc.w $194,$212
-	dc.w $6e07,$fffe
-	dc.w $194,$222
-	dc.w $6f07,$fffe
-	dc.w $194,$212
-	dc.w $7007,$fffe
-	dc.w $194,$222
-	dc.w $7107,$fffe
-	dc.w $194,$212
-	dc.w $7207,$fffe
-	dc.w $194,$222
-	dc.w $7307,$fffe
-	dc.w $194,$213
-	dc.w $7407,$fffe
-	dc.w $194,$122
-	dc.w $7507,$fffe
-	dc.w $194,$213
-	dc.w $7607,$fffe
-	dc.w $194,$222
-	dc.w $7707,$fffe
-	dc.w $194,$213
-	dc.w $7807,$fffe
-	dc.w $194,$222
-	dc.w $7907,$fffe
-	dc.w $194,$213
-	dc.w $7a07,$fffe
-	dc.w $194,$212
-	dc.w $7b07,$fffe
-	dc.w $194,$213
-	dc.w $8007,$fffe
-	dc.w $194,$113
-	dc.w $8107,$fffe
-	dc.w $194,$213
-	dc.w $8507,$fffe
-	dc.w $194,$214
-	dc.w $8607,$fffe
-	dc.w $194,$213
-	dc.w $8707,$fffe
-	dc.w $194,$214
-	dc.w $8807,$fffe
-	dc.w $194,$113
-	dc.w $8907,$fffe
-	dc.w $194,$214
-	dc.w $8a07,$fffe
-	dc.w $194,$213
-	dc.w $8b07,$fffe
-	dc.w $194,$204
-	dc.w $8c07,$fffe
-	dc.w $194,$113
-	dc.w $8d07,$fffe
-	dc.w $194,$204
-	dc.w $8e07,$fffe
-	dc.w $194,$114
-	dc.w $8f07,$fffe
-	dc.w $194,$204
-	dc.w $9007,$fffe
-	dc.w $194,$114
-	dc.w $9107,$fffe
-	dc.w $194,$204
-	dc.w $9207,$fffe
-	dc.w $194,$114
-	dc.w $9307,$fffe
-	dc.w $194,$205
-	dc.w $9407,$fffe
-	dc.w $194,$114
-	dc.w $9507,$fffe
-	dc.w $194,$205
-	dc.w $9607,$fffe
-	dc.w $194,$114
-	dc.w $9707,$fffe
-	dc.w $194,$205
-	dc.w $9807,$fffe
-	dc.w $194,$115
-	dc.w $9907,$fffe
-	dc.w $194,$205
-	dc.w $9a07,$fffe
-	dc.w $194,$115
-	dc.w $9b07,$fffe
-	dc.w $194,$205
-	dc.w $9c07,$fffe
-	dc.w $194,$115
-	dc.w $9d07,$fffe
-	dc.w $194,$205
-	dc.w $9e07,$fffe
-	dc.w $194,$115
-	dc.w $9f07,$fffe
-	dc.w $194,$206
-	dc.w $a007,$fffe
-	dc.w $194,$115
-	dc.w $a107,$fffe
-	dc.w $194,$206
-	dc.w $a207,$fffe
-	dc.w $194,$115
-	dc.w $a307,$fffe
-	dc.w $194,$206
-	dc.w $a407,$fffe
-	dc.w $194,$116
-	dc.w $a507,$fffe
-	dc.w $194,$106
-	dc.w $a607,$fffe
-	dc.w $194,$116
-	dc.w $a707,$fffe
-	dc.w $194,$206
-	dc.w $a807,$fffe
-	dc.w $194,$116
-	dc.w $a907,$fffe
-	dc.w $194,$107
-	dc.w $aa07,$fffe
-	dc.w $194,$116
-	dc.w $ab07,$fffe
-	dc.w $194,$107
-	dc.w $ac07,$fffe
-	dc.w $194,$116
-	dc.w $ad07,$fffe
-	dc.w $194,$107
-	dc.w $ae07,$fffe
-	dc.w $194,$017
-	dc.w $af07,$fffe
-	dc.w $194,$107
-	dc.w $b007,$fffe
-	dc.w $194,$017
-	dc.w $b107,$fffe
-	dc.w $194,$107
-	dc.w $b207,$fffe
-	dc.w $194,$016
-	dc.w $b307,$fffe
-	dc.w $194,$107
-	dc.w $b407,$fffe
-	dc.w $194,$116
-	dc.w $b507,$fffe
-	dc.w $194,$106
-	dc.w $b607,$fffe
-	dc.w $194,$016
-	dc.w $b707,$fffe
-	dc.w $194,$106
-	dc.w $b807,$fffe
-	dc.w $194,$116
-	dc.w $b907,$fffe
-	dc.w $194,$106
-	dc.w $ba07,$fffe
-	dc.w $194,$015
-	dc.w $bb07,$fffe
-	dc.w $194,$106
-	dc.w $bc07,$fffe
-	dc.w $194,$015
-	dc.w $bd07,$fffe
-	dc.w $194,$105
-	dc.w $be07,$fffe
-	dc.w $194,$015
-	dc.w $bf07,$fffe
-	dc.w $194,$105
-	dc.w $c007,$fffe
-	dc.w $194,$014
-	dc.w $c107,$fffe
-	dc.w $194,$105
-	dc.w $c207,$fffe
-	dc.w $194,$014
-	dc.w $c307,$fffe
-	dc.w $194,$105
-	dc.w $c407,$fffe
-	dc.w $194,$014
-	dc.w $c507,$fffe
-	dc.w $194,$104
-	dc.w $c607,$fffe
-	dc.w $194,$014
-	dc.w $c707,$fffe
-	dc.w $194,$104
-	dc.w $c807,$fffe
-	dc.w $194,$014
-	dc.w $c907,$fffe
-	dc.w $194,$104
-	dc.w $ca07,$fffe
-	dc.w $194,$014
-	dc.w $cb07,$fffe
-	dc.w $194,$104
-	dc.w $cc07,$fffe
-	dc.w $194,$113
-	dc.w $cd07,$fffe
-	dc.w $194,$104
-	dc.w $ce07,$fffe
-	dc.w $194,$113
-	dc.w $cf07,$fffe
-	dc.w $194,$104
-	dc.w $d007,$fffe
-	dc.w $194,$113
-	dc.w $d107,$fffe
-	dc.w $194,$114
-	dc.w $d207,$fffe
-	dc.w $194,$113
-	dc.w $d307,$fffe
-	dc.w $194,$114
-	dc.w $d407,$fffe
-	dc.w $194,$113
-	dc.w $d507,$fffe
-	dc.w $194,$114
-	dc.w $d607,$fffe
-	dc.w $194,$113
-	dc.w $db07,$fffe
-	dc.w $194,$213
-	dc.w $dc07,$fffe
-	dc.w $194,$113
-	dc.w $e107,$fffe
-	dc.w $194,$213
-	dc.w $e207,$fffe
-	dc.w $194,$113
-	dc.w $e307,$fffe
-	dc.w $194,$213
-	dc.w $e407,$fffe
-	dc.w $194,$112
-	dc.w $e507,$fffe
-	dc.w $194,$213
-	dc.w $e607,$fffe
-	dc.w $194,$112
-	dc.w $e707,$fffe
-	dc.w $194,$213
-	dc.w $e807,$fffe
-	dc.w $194,$112
-	dc.w $e907,$fffe
-	dc.w $194,$213
-	dc.w $ea07,$fffe
-	dc.w $194,$112
-	dc.w $eb07,$fffe
-	dc.w $194,$213
-	dc.w $ec07,$fffe
-	dc.w $194,$122
-	dc.w $ed07,$fffe
-	dc.w $194,$213
-	dc.w $ee07,$fffe
-	dc.w $194,$122
-	dc.w $ef07,$fffe
-	dc.w $194,$213
-	dc.w $f007,$fffe
-	dc.w $194,$122
-	dc.w $f107,$fffe
-	dc.w $194,$213
-	dc.w $f207,$fffe
-	dc.w $194,$122
-	dc.w $f307,$fffe
-	dc.w $194,$212
-	dc.w $f407,$fffe
-	dc.w $194,$122
-	dc.w $f507,$fffe
-	dc.w $194,$212
-	dc.w $f607,$fffe
-	dc.w $194,$122
-	dc.w $f707,$fffe
-	dc.w $194,$212
-	dc.w $f807,$fffe
-	dc.w $194,$122
-	dc.w $f907,$fffe
-	dc.w $194,$212
-	dc.w $fa07,$fffe
-	dc.w $194,$122
-	dc.w $fb07,$fffe
-	dc.w $194,$212
-	dc.w $fc07,$fffe
-	dc.w $194,$122
-	dc.w $fd07,$fffe
-	dc.w $194,$212
-	dc.w $fe07,$fffe
-	dc.w $194,$122
-	dc.w $ff07,$fffe
-	dc.w $194,$212
-	dc.w $ffdf,$fffe ; PAL fix
-	dc.w $007,$fffe
-	dc.w $194,$121
-	dc.w $107,$fffe
-	dc.w $194,$212
-	dc.w $207,$fffe
-	dc.w $194,$121
-	dc.w $307,$fffe
-	dc.w $194,$212
-	dc.w $407,$fffe
-	dc.w $194,$122
-	dc.w $507,$fffe
-	dc.w $194,$212
-	dc.w $607,$fffe
-	dc.w $194,$122
-	dc.w $707,$fffe
-	dc.w $194,$213
-	dc.w $807,$fffe
-	dc.w $194,$222
-	dc.w $907,$fffe
-	dc.w $194,$213
-	dc.w $a07,$fffe
-	dc.w $194,$122
-	dc.w $b07,$fffe
-	dc.w $194,$213
-	dc.w $c07,$fffe
-	dc.w $194,$122
-	dc.w $d07,$fffe
-	dc.w $194,$213
-	dc.w $e07,$fffe
-	dc.w $194,$113
-	dc.w $f07,$fffe
-	dc.w $194,$213
-	dc.w $1007,$fffe
-	dc.w $194,$113
-	dc.w $1107,$fffe
-	dc.w $194,$214
-	dc.w $1207,$fffe
-	dc.w $194,$113
-	dc.w $1307,$fffe
-	dc.w $194,$214
-	dc.w $1407,$fffe
-	dc.w $194,$113
-	dc.w $1507,$fffe
-	dc.w $194,$214
-	dc.w $1607,$fffe
-	dc.w $194,$114
-	dc.w $1b07,$fffe
-	dc.w $194,$115
-	dc.w $1c07,$fffe
-	dc.w $194,$114
-	dc.w $1d07,$fffe
-	dc.w $194,$105
-	dc.w $1e07,$fffe
-	dc.w $194,$114
-	dc.w $1f07,$fffe
-	dc.w $194,$105
-	dc.w $2007,$fffe
-	dc.w $194,$015
-	dc.w $2107,$fffe
-	dc.w $194,$105
-	dc.w $2207,$fffe
-	dc.w $194,$014
-	dc.w $2307,$fffe
-	dc.w $194,$105
-	dc.w $2407,$fffe
-	dc.w $194,$114
-	dc.w $2507,$fffe
-	dc.w $194,$105
-	dc.w $2607,$fffe
-	dc.w $194,$114
-	dc.w $2707,$fffe
-	dc.w $194,$204
-	dc.w $2807,$fffe
-	dc.w $194,$114
-	dc.w $2907,$fffe
-	dc.w $194,$204
-	dc.w $2a07,$fffe
-	dc.w $194,$114
-	dc.w $2b07,$fffe
-	dc.w $194,$204
-
 	IFEQ DYNCOPPER
-	;DC.W $FFDF,$FFFE		; allow VPOS>$ff
+	DC.W $FFDF,$FFFE		; allow VPOS>$ff
 	ENDC
 	DC.W $3507,$FF00		; ## RASTER END ## #$12C?
 	DC.W $009A,$0010		; CLEAR RASTER BUSY FLAG
