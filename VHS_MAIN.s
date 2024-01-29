@@ -16,7 +16,7 @@ bwid		EQU bpls*bypl	; byte-width of 1 pixel line (all bpls)
 DYNCOPPER		EQU 1
 	IFNE DYNCOPPER
 COP_WAITS		EQU 56
-COP_FRAMES	EQU 39
+COP_FRAMES	EQU 23
 COP_COLS_REGS	EQU 4
 COP_BLIT_SIZE	EQU COP_COLS_REGS*2+2
 	ENDC
@@ -28,14 +28,14 @@ Demo:			;a4=VBR, a6=Custom Registers Base addr
 	MOVE.W	#%1000001111100000,DMACON
 	;*--- start copper ---*
 	LEA	TEST_GRID,A0		; PF_1 OSD
-	LEA	40(A0),A0
+	;LEA	40(A0),A0
 	LEA	COPPER\.BplPtrs,A1
 	BSR.W	PokePtrs
 	LEA	PLANE_1,A0		; PF_2 NOIZE
 	LEA	COPPER\.BplPtrs+8,A1
 	BSR.W	PokePtrs
 	LEA	TEST_GRID,A0		; PF_1 OSD
-	LEA	-40(A0),A0
+	;LEA	-40(A0),A0
 	LEA	COPPER\.BplPtrs+16,A1
 	BSR.W	PokePtrs
 	LEA	PLANE_3,A0		; PF_2 NOIZE
@@ -97,14 +97,16 @@ Demo:			;a4=VBR, a6=Custom Registers Base addr
 	;JSR	_startmusic
 ;********************  main loop  ********************
 MainLoop:	
-	BTST	#6,$BFE001	; POTINP - LMB pressed?
-	BNE.S	.skip
-	;MOVE.W	#$0A0F,$DFF180	; show rastertime left down to $12c
-	;;BSR.W	__RND
-	.skip:
+	;BTST	#6,$BFE001	; POTINP - LMB pressed?
+	;BNE.S	.skip
+	;;MOVE.W	#$0A0F,$DFF180	; show rastertime left down to $12c
+	;;;BSR.W	__RND
+	;.skip:
 	TST.B	FRAME_STROBE
 	BNE.W	.oddFrame
 	MOVE.B	#1,FRAME_STROBE
+	BSR.W	__V_DISPLACE
+
 	LEA	PLANE_3,A0
 	LEA	PLANE_5,A2
 	LEA	COPPER\.BplPtrs+40,A1
@@ -186,13 +188,13 @@ __DECRUNCH_COPPERLIST:
 	MOVE.W	D0,(A1)+		; WAIT
 	MOVE.W	#$FFFE,(A1)+	; WAIT
 	CLR.L	D1
-	MOVE.B	(A0),D1		; BYTE FOR COLOR
+	MOVE.B	(A0)+,D1		; BYTE FOR COLOR
 
 	;MOVE.B	D6,D1		; FOR RED VALUE
 	;ADD.B	D7,D1
-	;SUB.B	D6,D1
+	ADD.B	D6,D1
 	LSR.W	#2,D1		; EXTEND FIRST NIBBLE
-	MOVE.B	(A0)+,D1		; FOR RED VALUE
+	;MOVE.B	(A0)+,D1		; FOR RED VALUE
 	LSL.B	D1
 
 	MOVE.W	#COP_COLS_REGS-1,D6
@@ -357,8 +359,8 @@ __HW_DISPLACE:
 	CMP.W	D4,D2
 	BEQ.S	.waitNextRaster
 
-	MOVE.W	VHPOSR,D4
-	AND.W	#$FF00,D4		; read vertical beam
+	MOVE.W	VHPOSR,D4		; RACE THE BEAM!
+	AND.W	#$FF00,D4		; RACE THE BEAM!
 
 	;CLR.L	D5
 	;MOVE.W	D2,D4
@@ -408,6 +410,27 @@ __HW_DISPLACE:
 	;MOVE.L	#0,BPL1MOD	; RESET
 	RTS
 
+__V_DISPLACE:
+	LEA	TEST_GRID,A0		; PF_1 OSD
+	LEA	COPPER\.BplPtrs,A1
+	LEA	V_OFFSET,A2
+	MOVE.W	V_IDX_1,D0
+	MOVE.W	#$3F,D3
+	ADD.W	#$2,D0
+	AND.W	D3,D0
+	MOVE.W	D0,V_IDX_1
+	MOVE.W	(A2,D0.W),D1
+	ADD.W	D1,A0
+	BSR.W	PokePtrs
+	LEA	TEST_GRID,A0		; PF_1 OSD
+	LEA	COPPER\.BplPtrs+16,A1
+	SUB.W	D0,D3
+	SUB.W	#1,D3
+	MOVE.W	(A2,D3.W),D1
+	ADD.W	D1,A0
+	BSR.W	PokePtrs
+	RTS
+
 FRAME_STROBE:	DC.B 0,0
 NOISE_SEED_0:	DC.B 0
 NOISE_SEED_1:	DC.B 0
@@ -416,6 +439,10 @@ SCROLL_IDX:	DC.W 0
 LFO_SINE_1:	DC.W 1,1,1,2,2,2,3,4,4,5,5,6,6,7,7,7,7,7,7,6,6,5,5,4,4,3,2,2,2,1,1,1
 LFO_SINE_2:	DC.W 5,5,4,5,5,4,5,4,5,5,4,4,3,2,3,2,1,0,0,0,1,0,1,2,2,3,4,4,5,4,5,4
 LFO_NOISE:	DC.W 1,4,1,5,2,4,3,5,2,4,2,5,2,4,1,5,1,4,1,5,3,4,2,5,1,4,5,5,4,4,6,5 
+V_IDX_1:		DC.W 0
+V_IDX_2:		DC.W $1F
+V_OFFSET:		DC.W 0,40,40,80,120,80,40,40,0,-40,-80,-80,-40,-40,0,0
+		DC.W 0,0,40,40,80,80,40,0,-40,-80,-120,-80,-40,-40,-40,0
 
 	IFNE DYNCOPPER
 	GRADIENT_REGISTERS:	DC.W $0192,$0196,$019A,$019E
@@ -430,7 +457,7 @@ LFO_NOISE:	DC.W 1,4,1,5,2,4,3,5,2,4,2,5,2,4,1,5,1,4,1,5,3,4,2,5,1,4,5,5,4,4,6,5
 ;*******************************************************************************
 	SECTION	ChipData,DATA_C	;declared data that must be in chipmem
 ;*******************************************************************************
-		DS.B he*8		; For PointPtr...
+		DS.B he/4*bypl		; For PointPtr...
 TEST_GRID:	INCBIN "VHS_GRID_TEST.raw"
 		DS.B he*bypl		; For PointPtr...
 
@@ -456,7 +483,7 @@ COPPER:	; #### COPPERLIST ####################################################
 	DC.W $0180,$0000,$0182,$00D1,$0184,$0F0E,$0186,$000F
 	DC.W $0188,$0FFF,$018A,$0DEF,$018C,$0DDD,$018E,$0CDE
 
-	DC.W $0190,$0000,$0192,$013E,$0194,$033D,$0196,$032F
+	DC.W $0190,$002C,$0192,$013E,$0194,$033D,$0196,$032F
 	DC.W $0198,$022E,$019A,$000F,$019C,$002C,$019E,$031F
 
 	DC.W $01A0,$0F0F,$01A2,$0CCC,$01A4,$0048,$01A6,$0048
