@@ -100,14 +100,13 @@ Demo:			;a4=VBR, a6=Custom Registers Base addr
 	;JSR	_startmusic
 ;********************  main loop  ********************
 MainLoop:	
-	;BTST	#6,$BFE001	; POTINP - LMB pressed?
-	;BNE.S	.skip
-	;;;MOVE.W	#$0A0F,$DFF180	; show rastertime left down to $12c
-	;;;;BSR.W	__RND
-	;.skip:
+	BTST	#6,$BFE001	; POTINP - LMB pressed?
+	BNE.S	.skip
+	;MOVE.W	#$0A0F,$DFF180	; show rastertime left down to $12c
+	MOVE.W	BLUE_COLS,NOISE_SEED_0
+	.skip:
 
 	; $0192,$0196,$019A,$019E
-	CLR.W	$100		; DEBUG | x
 	LEA	BLUE_COLS,A6
 	MOVE.L	(A6),D0
 
@@ -122,8 +121,9 @@ MainLoop:
 	MOVE.L	D0,8(A6)
 	MOVE.L	D1,(A6)
 
-	MOVE.L	#$0A0900A1,$DFF182		; G+P
+	;MOVE.L	#$0A0900A1,$DFF182		; G+P
 	;MOVE.L	#$000F030A,$DFF182		; BLUE
+	MOVE.L	#$0F0000FF,$DFF182		; TIKTOK
 
 	LEA	COPPER\.BplPtrs,A1		; VERTICAL TXT
 	MOVE.W	V_IDX_1,D0		; VERTICAL TXT
@@ -170,6 +170,7 @@ MainLoop:
 	MOVE.B	(A2),NOISE_SEED_1
 
 	BSR.W	__RACE_BEAM
+	BSR.W	__FILLANDSCROLLTXT
 
 	IFNE DYNCOPPER
 	BSR.W	__BLIT_GRADIENT_IN_COPPER
@@ -420,6 +421,12 @@ __RACE_BEAM:
 	MOVE.W	VHPOSR,D4		; RACE THE BEAM!
 	AND.W	#$FF00,D4		; RACE THE BEAM!
 
+	CMP.W	#$5700,D2		; 12.032 - #$2F00
+	BNE.S	.keepLFO
+	LEA	LFO_VIBRO,A0
+	MOVE.L	#$0E0F00E0,$DFF182	; G+P
+	.keepLFO:
+
 	;CLR.L	D5
 	;MOVE.W	D2,D4
 	;MOVE.B	$DFF007,D5	; $dff00a $dff00b for mouse pos
@@ -479,38 +486,68 @@ __V_DISPLACE:
 	BSR.W	PokePtrs
 	RTS
 
+__FILLANDSCROLLTXT:
+	CLR.L	D2
+	LEA	TEST_GRID,A4
+	LEA	FONT-32,A5
+	LEA	TEXT,A3
+	ADD.W	#bypl*(16-3),A4	; POSITIONING
+	ADD.W	TEXTINDEX,A3
+	ADD.W	TEXTINDEX,A4
+	ADD.W	TEXTINDEX,A4
+	CMP.L	#_TEXT-1,A3
+	BNE.S	.PROCEED
+	MOVE.W	#0,TEXTINDEX
+	LEA	TEXT,A3
+	.PROCEED:
+	MOVE.B	(A3),D2
+	SUBI.B	#$20,D2
+	MULU.W	#32,D2
+	ADD.W	D2,A5
+	CLR.W	D6
+	MOVE.B	#16-1,D6
+	.LOOP:
+	ADD.W	#bypl,A4		; POSITIONING
+	MOVE.W	(A5)+,(A4)
+	DBRA	D6,.LOOP
+	ADDI.W	#1,TEXTINDEX
+	RTS
+
 FRAME_STROBE:	DC.B 0,0
 NOISE_SEED_0:	DC.B 0
 NOISE_SEED_1:	DC.B 0
 BPLMOD_IDX:	DC.W 0
 SCROLL_IDX:	DC.W 0
-LFO_SINE_1:	DC.W 1,1,1,2,2,2,3,4,4,5,5,6,6,7,7,7,7,7,7,6,6,5,5,4,4,3,2,2,2,1,1,1
+LFO_SINE_1:	DC.W 0,1,1,2,2,2,3,4,4,5,5,6,6,7,6,7,6,7,7,6,6,5,5,4,4,3,2,2,2,1,1,0
 LFO_SINE_2:	DC.W 5,5,4,5,5,4,5,4,5,5,4,4,3,2,3,2,1,0,0,0,1,0,1,2,2,3,4,4,5,4,5,4
-LFO_NOISE:	DC.W 1,4,1,5,2,4,3,5,2,4,2,5,2,4,1,5,1,4,1,5,3,4,2,5,1,4,5,5,4,4,6,5 
+LFO_NOISE:	DC.W 1,4,1,5,2,4,3,5,2,4,2,5,2,4,1,5,1,4,1,5,3,4,2,5,1,4,5,5,4,4,6,5
+LFO_VIBRO:	DC.W 4,5,4,5,4,5,4,5,4,5,2,1,2,1,2,1,0,1,0,1,0,1,0,1,0,1,0,1,0,1,0,2
 V_IDX_1:		DC.W $2
 V_IDX_2:		DC.W $32
 V_OFFSET:		DC.W 0,40,40,80,80,40,40,0,0,-40,-80,-80,-40,-40,0,0
 		DC.W 0,0,40,40,80,80,40,0,-40,-40,-80,-80,-40,-40,-40,0
-
 ;BLUE_COLS:	DC.W $011E,$012F,$000F,$030F,$000D,$021C
 BLUE_COLS:	DC.W $010E,$020D,$012E,$021C,$000D,$001E
-
 	IFNE DYNCOPPER
 GRADIENT_REGISTERS:	DC.W $0192,$0196,$019A,$019E
 GRADIENT_INDEX:	DC.W 0
 GRADIENT_VALS:	INCLUDE "CopGradients.i"
 	ENDC
+TEXTINDEX:	DC.W 0
+TEXT:		DC.B " PLAY > "
+		 EVEN
+_TEXT:
 
-;FONT:		DC.L 0,0		; SPACE CHAR
-;		INCBIN "c_font_leftpadding2.raw";,0
-		EVEN
-;TEXT:		INCLUDE "textscroller.i"
 ;*******************************************************************************
 	SECTION	ChipData,DATA_C	;declared data that must be in chipmem
 ;*******************************************************************************
 		DS.B he/4*bypl		; For PointPtr...
 TEST_GRID:	INCBIN "VHS_GRID_TEST.raw"
 		DS.B he*bypl		; For PointPtr...
+
+FONT:		;DC.L 0,0,0,0,0,0,0,0	; SPACE CHAR
+		INCBIN "VHS_font.raw",0
+		EVEN
 
 ;MED_MODULE:	INCBIN "med/RustEater_2022_FIX4.med"
 ;_chipzero:	DC.L 0
