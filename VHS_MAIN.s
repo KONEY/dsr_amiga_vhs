@@ -222,8 +222,11 @@ VBint:				; Blank template VERTB interrupt
 	rte
 
 _WipeMEM:		; a1=screen destination address to clear
-	BSR		WaitBlitter
-	CLR.W	BLTDMOD			; destination modulo
+	ADD.L		#bypl,A1
+ 	.half:
+ 	BSR		WaitBlitter
+ 	;MOVE.W	#bypl,BLTDMOD		; for HALF with lines.
+ 	CLR.W	BLTDMOD			; destination modulo
 	LOVE.L	#$01000000,BLTCON0	; set operation type in BLTCON0/1
 	MOVE.L	A1,BLTDPTH			; destination address
  	MOVE.W	#16*64+FONT_H/16,BLTSIZE	; Start Blitter (Blitsize)
