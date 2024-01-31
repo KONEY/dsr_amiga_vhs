@@ -32,19 +32,19 @@ Demo:			;a4=VBR, a6=Custom Registers Base addr
 	MOVE.W	#%1110000000100000,INTENA
 	MOVE.W	#%1000001111100000,DMACON
 	;*--- start copper ---*
-	LEA	TEST_GRID,A0		; PF_1 OSD
+	LEA	TXT_GRID,A0		; PF_1 OSD
 	LEA	COPPER\.BplPtrs,A1
 	BSR.W	PokePtrs
 	LEA	PLANE_1,A0		; PF_2 NOIZE
 	LEA	COPPER\.BplPtrs+8,A1
 	BSR.W	PokePtrs
-	LEA	TEST_GRID,A0		; PF_1 OSD
+	LEA	TXT_GRID,A0		; PF_1 OSD
 	LEA	COPPER\.BplPtrs+16,A1
 	BSR.W	PokePtrs
 	LEA	PLANE_3,A0		; PF_2 NOIZE
 	LEA	COPPER\.BplPtrs+24,A1
 	BSR.W	PokePtrs
-	LEA	TEST_GRID,A0		; PF_1 OSD
+	LEA	TXT_GRID,A0		; PF_1 OSD
 	LEA	COPPER\.BplPtrs+32,A1
 	BSR.W	PokePtrs
 	LEA	PLANE_5,A0		; PF_2 NOIZE
@@ -481,7 +481,7 @@ __RACE_BEAM:
 	RTS
 
 __V_DISPLACE:
-	LEA	TEST_GRID,A0		; PF_1 OSD
+	LEA	TXT_GRID,A0		; PF_1 OSD
 	LEA	V_OFFSET,A2
 	MOVE.W	#$3F,D3
 	ADD.W	#$2,D0
@@ -493,7 +493,7 @@ __V_DISPLACE:
 
 __FILLANDSCROLLTXT:
 	CLR.L	D2
-	LEA	TEST_GRID,A4
+	LEA	TXT_GRID,A4
 	LEA	FONT-32,A5
 	LEA	TEXT,A3
 	ADD.W	#bypl*(16-3),A4	; POSITIONING
@@ -524,8 +524,8 @@ __BLIT_LETTER:
 	MOVE.W	#$FFFF,BLTALWM		; BLTALWM
 	MOVE.W	#%0000100111110000,BLTCON0	; BLTCON0
 	MOVE.W	#%0000000000010010,BLTCON1	; BLTCON1
-	MOVE.W	#bypl,BLTAMOD			; BLTAMOD
-	MOVE.W	#bypl,BLTDMOD			; Init modulo Dest D
+	MOVE.W	#bypl-2,BLTAMOD			; BLTAMOD
+	MOVE.W	#bypl-2,BLTDMOD			; Init modulo Dest D
 	MOVE.L	A5,BLTAPTH
 	MOVE.L	A4,BLTDPTH
 	MOVE.W	#16*64+FONT_H/16,BLTSIZE	; Start Blitter (Blitsize)
@@ -560,7 +560,7 @@ _TEXT:
 	SECTION	ChipData,DATA_C	;declared data that must be in chipmem
 ;*******************************************************************************
 		DS.B he/4*bypl		; For PointPtr...
-TEST_GRID:	INCBIN "VHS_GRID_TEST.raw"
+
 		DS.B he*bypl		; For PointPtr...
 
 FONT:		;DC.L 0,0,0,0,0,0,0,0	; SPACE CHAR
@@ -638,10 +638,12 @@ COPPER:	; #### COPPERLIST ####################################################
 	GRADIENT_PTRS:	DS.L COP_FRAMES
 	COPPER_BUFFER:	DS.W COP_FRAMES*(COP_BLIT_SIZE*COP_WAITS+2)	; +2 vpos >$FF
 	ENDC
+
+DUMMY_:		DS.B he/4*bypl
+TXT_GRID:		DS.B he*bypl
 DUMMY_0:		DS.B he/4*bypl
 PLANE_1:		DS.B he*bypl
 PLANE_3:		DS.B he*bypl
 PLANE_5:		DS.B he*bypl
 DUMMY_1:		DS.B he*2*bypl
-
 END
