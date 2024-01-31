@@ -221,6 +221,14 @@ VBint:				; Blank template VERTB interrupt
 	movem.l	(sp)+,d0/a6	; restore
 	rte
 
+_WipeMEM:		; a1=screen destination address to clear
+	BSR		WaitBlitter
+	CLR.W	BLTDMOD			; destination modulo
+	LOVE.L	#$01000000,BLTCON0	; set operation type in BLTCON0/1
+	MOVE.L	A1,BLTDPTH			; destination address
+ 	MOVE.W	#16*64+FONT_H/16,BLTSIZE	; Start Blitter (Blitsize)
+	RTS
+ 
 	IFNE DYNCOPPER
 __DECRUNCH_COPPERLIST:
 	MOVE.W	#COP_WAITS,D7
