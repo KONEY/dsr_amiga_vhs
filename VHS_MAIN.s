@@ -646,4 +646,5 @@ PLANE_1:		DS.B he*bypl
 PLANE_3:		DS.B he*bypl
 PLANE_5:		DS.B he*bypl
 DUMMY_1:		DS.B he*2*bypl
+TXT_SCROLBUF:	DS.B (bypl+1)*FONT_H
 END
