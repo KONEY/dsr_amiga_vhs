@@ -13,6 +13,11 @@ bpls		EQU 6		; depth
 bypl		EQU wi/16*2	; byte-width of 1 bitplane line (40bytes)
 bwid		EQU bpls*bypl	; byte-width of 1 pixel line (all bpls)
 ;*******************************
+FONT_W			EQU 10
+FONT_H			EQU 16
+FONT_PAD		EQU 2
+FONT_OFFSET		EQU 16-FONT_W-FONT_PAD
+;*******************************
 DYNCOPPER		EQU 0
 	IFNE DYNCOPPER
 COP_WAITS		EQU 56
