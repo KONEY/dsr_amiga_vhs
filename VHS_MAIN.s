@@ -13,12 +13,12 @@ bpls		EQU 6		; depth
 bypl		EQU wi/16*2	; byte-width of 1 bitplane line (40bytes)
 bwid		EQU bpls*bypl	; byte-width of 1 pixel line (all bpls)
 ;*******************************
-FONT_W			EQU 10
-FONT_H			EQU 16
+FONT_W		EQU 10
+FONT_H		EQU 16
 FONT_PAD		EQU 2
-FONT_OFFSET		EQU 16-FONT_W-FONT_PAD
+FONT_OFFSET	EQU 16-FONT_W-FONT_PAD
 ;*******************************
-DYNCOPPER		EQU 0
+DYNCOPPER	EQU 0
 	IFNE DYNCOPPER
 COP_WAITS		EQU 56
 COP_FRAMES	EQU 23
@@ -32,22 +32,22 @@ Demo:			;a4=VBR, a6=Custom Registers Base addr
 	MOVE.W	#%1110000000100000,INTENA
 	MOVE.W	#%1000001111100000,DMACON
 	;*--- start copper ---*
-	LEA	TXT_GRID,A0		; PF_1 OSD
+	LEA	TXT_GRID,A0	; PF_1 OSD
 	LEA	COPPER\.BplPtrs,A1
 	BSR.W	PokePtrs
-	LEA	PLANE_1,A0		; PF_2 NOIZE
+	LEA	PLANE_1,A0	; PF_2 NOIZE
 	LEA	COPPER\.BplPtrs+8,A1
 	BSR.W	PokePtrs
-	LEA	TXT_GRID,A0		; PF_1 OSD
+	LEA	TXT_GRID,A0	; PF_1 OSD
 	LEA	COPPER\.BplPtrs+16,A1
 	BSR.W	PokePtrs
-	LEA	PLANE_3,A0		; PF_2 NOIZE
+	LEA	PLANE_3,A0	; PF_2 NOIZE
 	LEA	COPPER\.BplPtrs+24,A1
 	BSR.W	PokePtrs
-	LEA	TXT_GRID,A0		; PF_1 OSD
+	LEA	TXT_GRID,A0	; PF_1 OSD
 	LEA	COPPER\.BplPtrs+32,A1
 	BSR.W	PokePtrs
-	LEA	PLANE_5,A0		; PF_2 NOIZE
+	LEA	PLANE_5,A0	; PF_2 NOIZE
 	LEA	COPPER\.BplPtrs+40,A1
 	BSR.W	PokePtrs
 
@@ -79,9 +79,9 @@ Demo:			;a4=VBR, a6=Custom Registers Base addr
 	LEA	PLANE_1,A4	; FILLS A PLANE
 	BSR.W	__FILLSOLID	; SOME DUMMY OPERATION...
 	LEA	PLANE_3,A4	; FILLS A PLANE
-	BSR.W	__FILLRND		; SOME DUMMY OPERATION...
+	BSR.W	__FILLRND	; SOME DUMMY OPERATION...
 	LEA	PLANE_5,A4	; FILLS A PLANE
-	BSR.W	__FILLRND		; SOME DUMMY OPERATION...
+	BSR.W	__FILLRND	; SOME DUMMY OPERATION...
 	LEA	DUMMY_1,A4	; FILLS A PLANE
 	BSR.W	__FILLSOLID	; SOME DUMMY OPERATION...
 	BSR.W	__FILLSOLID	; SOME DUMMY OPERATION...
@@ -203,7 +203,7 @@ MainLoop:
 
 ;********** Demo Routines **********
 PokePtrs:				; SUPER SHRUNK REFACTOR
-	MOVE.L	A0,-4(A0)		; Needs EMPTY plane to write addr
+	MOVE.L	A0,-4(A0)	; Needs EMPTY plane to write addr
 	MOVE.W	-4(A0),2(A1)	; high word of address
 	MOVE.W	-2(A0),6(A1)	; low word of address
 	RTS
@@ -222,16 +222,16 @@ VBint:				; Blank template VERTB interrupt
 	rte
 
 _WipeMEM:		; a1=screen destination address to clear
-	ADD.L		#bypl,A1
- 	.half:
- 	BSR		WaitBlitter
- 	;MOVE.W	#bypl,BLTDMOD		; for HALF with lines.
- 	CLR.W	BLTDMOD			; destination modulo
-	LOVE.L	#$01000000,BLTCON0	; set operation type in BLTCON0/1
-	MOVE.L	A1,BLTDPTH			; destination address
- 	MOVE.W	#16*64+FONT_H/16,BLTSIZE	; Start Blitter (Blitsize)
+	ADD.L	#bypl,A1
+	.half:
+	BSR	WaitBlitter
+	;MOVE.W	#bypl,BLTDMOD		; for HALF with lines.
+	CLR.W	BLTDMOD			; destination modulo
+	MOVE.L	#$01000000,BLTCON0		; set operation type in BLTCON0/1
+	MOVE.L	A1,BLTDPTH		; destination address
+	MOVE.W	#16*64+FONT_H/16,BLTSIZE	; Start Blitter (Blitsize)
 	RTS
- 
+
 	IFNE DYNCOPPER
 __DECRUNCH_COPPERLIST:
 	MOVE.W	#COP_WAITS,D7
@@ -535,13 +535,13 @@ __BLIT_LETTER:
 	MOVE.W	#$FFFF,BLTALWM		; BLTALWM
 	MOVE.W	#%0000100111110000,BLTCON0	; BLTCON0
 	MOVE.W	#%0000000000010010,BLTCON1	; BLTCON1
-	MOVE.W	#bypl-2,BLTAMOD			; BLTAMOD
-	MOVE.W	#bypl-2,BLTDMOD			; Init modulo Dest D
+	MOVE.W	#bypl-2,BLTAMOD		; BLTAMOD
+	MOVE.W	#bypl-2,BLTDMOD		; Init modulo Dest D
 	MOVE.L	A5,BLTAPTH
 	MOVE.L	A4,BLTDPTH
 	MOVE.W	#16*64+FONT_H/16,BLTSIZE	; Start Blitter (Blitsize)
 	RTS
- 
+
 FRAME_STROBE:	DC.B 0,0
 NOISE_SEED_0:	DC.B 0
 NOISE_SEED_1:	DC.B 0
@@ -564,7 +564,7 @@ GRADIENT_VALS:	INCLUDE "CopGradients.i"
 	ENDC
 TEXTINDEX:	DC.W 0
 TEXT:		DC.B " PLAY > "
-		 EVEN
+		EVEN
 _TEXT:
 
 ;*******************************************************************************
