@@ -9,10 +9,26 @@
 				"args": [
 					"-m68000",
 					"-Fhunkexe",
-					//"-linedebug",
 					"-nosym",
 					"-kick1hunks",
-					"-nocase",
+					"-nocase"
+				],
+				"leaveWarnings": true
+			},
+			"problemMatcher": [],
+			"label": "amigaassembly: compile current file"
+		},
+		{
+			"type": "amigaassembly",
+			"vasm": {
+				"enabled": true,
+				"command": "${config:amiga-assembly.binDir}/vasmm68k_mot",
+				"args": [
+					"-m68000",
+					"-Fhunkexe",
+					"-nosym",
+					"-kick1hunks",
+					"-nocase"
 				],
 				"leaveWarnings": true
 			},
