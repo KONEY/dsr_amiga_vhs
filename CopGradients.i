@@ -140,16 +140,16 @@
 	DC.B $7E,$10
 	DC.B $7F,$23
 	DC.B $80,$23
-	DC.B $D0,$AA
+	DC.B $D0,$40
 	DC.B $D1,$23
 	DC.B $D2,$10
-	DC.B $D3,$AA
+	DC.B $D3,$12
 	DC.B $D4,$23
 	DC.B $D5,$11
-	DC.B $D6,$AA
+	DC.B $D6,$22
 	DC.B $D7,$10
 	DC.B $D8,$11
-	DC.B $F5,$11
+	DC.B $F5,$21
 	DC.B $F6,$11
 	DC.B $F7,$22
 	DC.B $F8,$11
@@ -261,9 +261,9 @@
 	DC.B $83,$23
 	DC.B $84,$23
 	DC.B $85,$23
-	DC.B $A4,$AA
+	DC.B $A4,$FF
 	DC.B $A5,$23
-	DC.B $A6,$AA
+	DC.B $A6,$FF
 	DC.B $A7,$23
 	DC.B $A8,$AA
 	DC.B $AB,$23
@@ -288,6 +288,64 @@
 	DC.B $18,$24
 	DC.B $19,$34	; TOT 57 LINES
 
+	DC.B $2C,$10
+	DC.B $2D,$11
+	DC.B $36,$12
+	DC.B $37,$22
+	DC.B $38,$12
+	DC.B $39,$22
+	DC.B $3F,$23
+	DC.B $45,$23
+	DC.B $46,$33
+	DC.B $48,$34
+	DC.B $49,$33
+	DC.B $4A,$34
+	DC.B $50,$34
+	DC.B $51,$44
+	DC.B $53,$45
+	DC.B $67,$55
+	DC.B $68,$45
+	DC.B $69,$55
+	DC.B $6A,$45
+	DC.B $6B,$55
+	DC.B $93,$56
+	DC.B $94,$55
+	DC.B $97,$56
+	DC.B $98,$55
+	DC.B $9B,$56
+	DC.B $9C,$55
+	DC.B $9D,$56
+	DC.B $9E,$55
+	DC.B $9F,$56
+	DC.B $C9,$55
+	DC.B $CA,$56
+	DC.B $CC,$55
+	DC.B $CD,$56
+	DC.B $CE,$55
+	DC.B $D0,$56
+	DC.B $D1,$55
+	DC.B $D3,$56
+	DC.B $D4,$55
+	DC.B $D7,$56
+	DC.B $D8,$55
+	DC.B $FA,$44
+	DC.B $FB,$54
+	DC.B $FC,$44
+	DC.B $00,$23	; VPOSFF
+	DC.B $04,$43
+	DC.B $08,$33
+	DC.B $0E,$32
+	DC.B $12,$32
+	DC.B $13,$32
+	DC.B $14,$22
+	DC.B $18,$21
+	DC.B $20,$21
+	DC.B $21,$10
+	DC.B $22,$11
+	DC.B $23,$10
+	DC.B $2A,$23
+	DC.B $2B,$10	; TOT 57 LINES
+
 	DC.B $2C,$11
 	DC.B $2F,$22
 	DC.B $32,$33
@@ -300,9 +358,9 @@
 	DC.B $79,$23
 	DC.B $7A,$10
 	DC.B $7D,$23
-	DC.B $A2,$AA
+	DC.B $A2,$FF
 	DC.B $A3,$23
-	DC.B $A4,$AA
+	DC.B $A4,$FF
 	DC.B $B9,$23
 	DC.B $BA,$AA
 	DC.B $BB,$23
@@ -404,6 +462,8 @@
 	;DC.B $28,$11
 	;DC.B $2A,$23	; TOT 57 LINES
 
+	DC.B $A3,$AA
+	DC.B $A5,$23
 	DC.B $2C,$11
 	DC.B $30,$22
 	DC.B $35,$33
@@ -421,19 +481,18 @@
 	DC.B $81,$23
 	DC.B $83,$10
 	DC.B $85,$23
-	DC.B $A3,$AA
-	DC.B $A5,$23
+
 	DC.B $A7,$AA
 	DC.B $AB,$23
-	DC.B $AD,$AA
+	DC.B $AD,$FF
 	DC.B $B1,$23
 	DC.B $B2,$AA
 	DC.B $B4,$23
 	DC.B $B5,$AA
 	DC.B $B8,$23
-	DC.B $B9,$AA
+	DC.B $B9,$FF
 	DC.B $BA,$23
-	DC.B $BB,$AA
+	DC.B $BB,$FF
 	DC.B $BD,$23
 	DC.B $C2,$AA
 	DC.B $C3,$23
@@ -450,18 +509,19 @@
 	DC.B $E3,$21
 	DC.B $F0,$22
 	DC.B $F9,$32
-	DC.B $FA,$22
+	DC.B $FA,$FF
 	DC.B $FB,$32
 	DC.B $FE,$33
 	DC.B $00,$23	; VPOSFF
-	DC.B $10,$43
+	DC.B $10,$F0
 	DC.B $11,$44
 	DC.B $18,$34
-	DC.B $21,$23
+	DC.B $21,$FF
 	DC.B $25,$22
 	DC.B $26,$12
 	DC.B $28,$11	; TOT 57 LINES
 
+	DC.B $00,$23	; VPOSFF
 	DC.B $2C,$11
 	DC.B $31,$22
 	DC.B $37,$33
@@ -497,14 +557,14 @@
 	DC.B $CF,$10
 	DC.B $D0,$11
 	DC.B $D1,$10
-	DC.B $D2,$11
+	DC.B $D2,$1F
 	DC.B $D4,$10
-	DC.B $D6,$11
+	DC.B $D6,$A1
 	DC.B $D8,$10
 	DC.B $DA,$11
 	DC.B $DB,$10
 	DC.B $DC,$11
-	DC.B $E0,$10
+	DC.B $E0,$1E
 	DC.B $E1,$11
 	DC.B $E2,$21
 	DC.B $EF,$22
@@ -512,7 +572,7 @@
 	DC.B $F1,$22
 	DC.B $FA,$32
 	DC.B $FE,$33
-	DC.B $00,$23	; VPOSFF
+
 	DC.B $0D,$44
 	DC.B $17,$34
 	DC.B $1E,$23
@@ -520,6 +580,7 @@
 	DC.B $25,$12
 	DC.B $27,$11	; TOT 57 LINES
 
+	DC.B $00,$23	; VPOSFF
 	DC.B $2C,$11
 	DC.B $32,$22
 	DC.B $39,$33
@@ -555,7 +616,7 @@
 	DC.B $CB,$10
 	DC.B $CE,$11
 	DC.B $CF,$10
-	DC.B $D3,$11
+	DC.B $D3,$FF
 	DC.B $D5,$10
 	DC.B $D6,$11
 	DC.B $D8,$10
@@ -569,7 +630,7 @@
 	DC.B $EF,$22
 	DC.B $F7,$32
 	DC.B $FC,$33
-	DC.B $00,$23	; VPOSFF
+
 	DC.B $0D,$44
 	DC.B $14,$34
 	DC.B $1D,$23
@@ -624,7 +685,6 @@
 	DC.B $F5,$32
 	DC.B $F6,$32
 	DC.B $FA,$33
-	DC.B $00,$23	; VPOSFF
 	DC.B $08,$33
 	DC.B $09,$33
 	DC.B $0A,$44
@@ -635,6 +695,7 @@
 	DC.B $21,$22
 	DC.B $24,$12
 	DC.B $28,$11	; TOT 57 LINES
+	DC.B $00,$23	; VPOSFF
 
 	DC.B $2C,$11
 	DC.B $33,$22
@@ -664,7 +725,7 @@
 	DC.B $AF,$23
 	DC.B $B9,$AA
 	DC.B $BA,$23
-	DC.B $BB,$AA
+	DC.B $BB,$FF
 	DC.B $BD,$23
 	DC.B $BF,$AA
 	DC.B $C0,$23
@@ -686,40 +747,40 @@
 	DC.B $E9,$22
 	DC.B $F3,$32
 	DC.B $F9,$33
-	DC.B $00,$23	; VPOSFF
 	DC.B $06,$44
 	DC.B $0F,$34
 	DC.B $1A,$23
 	DC.B $20,$22
 	DC.B $23,$12
 	DC.B $27,$11	; TOT 57 LINES
+	DC.B $00,$23	; VPOSFF
 
 	DC.B $2C,$11
-	DC.B $32,$21
-	DC.B $37,$22
-	DC.B $3A,$32
-	DC.B $42,$43
-	DC.B $47,$33
-	DC.B $4C,$34
-	DC.B $53,$33
-	DC.B $54,$34
-	DC.B $55,$23
-	DC.B $65,$22
-	DC.B $6A,$12
-	DC.B $71,$11
-	DC.B $72,$12
-	DC.B $73,$11
-	DC.B $7E,$10
-	DC.B $7F,$11
-	DC.B $80,$10
-	DC.B $85,$23
-	DC.B $86,$10
-	DC.B $87,$23
-	DC.B $92,$AA
+	DC.B $32,$66
+	DC.B $37,$AA
+	DC.B $3A,$EE
+	DC.B $42,$FF
+	DC.B $47,$DD
+	DC.B $4C,$BB
+	DC.B $53,$AA
+	DC.B $54,$99
+	DC.B $55,$88
+	DC.B $65,$66
+	DC.B $6A,$77
+	DC.B $71,$88
+	DC.B $72,$99
+	DC.B $73,$AA
+	DC.B $7E,$BB
+	DC.B $7F,$FB
+	DC.B $80,$CC
+	DC.B $85,$0C
+	DC.B $86,$DD
+	DC.B $87,$EE
+	DC.B $92,$FF
 	DC.B $96,$23
-	DC.B $A2,$10
+	DC.B $A2,$BB
 	DC.B $A3,$23
-	DC.B $A4,$10
+	DC.B $A4,$99
 	DC.B $AC,$23
 	DC.B $AD,$10
 	DC.B $B0,$23
@@ -755,19 +816,19 @@
 	DC.B $2C,$11
 	DC.B $33,$12
 	DC.B $34,$22
-	DC.B $3B,$33
-	DC.B $42,$34
-	DC.B $43,$44
-	DC.B $48,$34
-	DC.B $49,$34
-	DC.B $55,$23
-	DC.B $56,$33
-	DC.B $57,$23
-	DC.B $64,$22
-	DC.B $6A,$22
-	DC.B $6B,$22
+	DC.B $3B,$66
+	DC.B $42,$99
+	DC.B $43,$FA
+	DC.B $48,$AA
+	DC.B $49,$BB
+	DC.B $55,$CC
+	DC.B $56,$DD
+	DC.B $57,$EE
+	DC.B $64,$FF
+	DC.B $6A,$0F
+	DC.B $6B,$AA
 	DC.B $6C,$12
-	DC.B $6D,$22
+	DC.B $6D,$88
 	DC.B $6E,$12
 	DC.B $74,$11
 	DC.B $7F,$10
@@ -799,36 +860,36 @@
 	DC.B $00,$44
 	DC.B $01,$34
 	DC.B $02,$44
-	DC.B $0A,$44
+	DC.B $0A,$FF
 	DC.B $0B,$34
 	DC.B $0C,$34
-	DC.B $17,$33
-	DC.B $18,$33
+	DC.B $17,$A3
+	DC.B $18,$3F
 	DC.B $19,$23
 	DC.B $1E,$22
-	DC.B $22,$12
+	DC.B $22,$AA
 	DC.B $27,$11
 	DC.B $2B,$10	; TOT 57 LINES
 
 	DC.B $2C,$AA
 	DC.B $2D,$11
 	DC.B $35,$22
-	DC.B $3D,$33
+	DC.B $3D,$FF
 	DC.B $46,$34
-	DC.B $47,$44
+	DC.B $47,$AA
 	DC.B $4C,$44
-	DC.B $4D,$34
+	DC.B $4D,$BB
 	DC.B $4E,$34
-	DC.B $57,$34
+	DC.B $57,$CC
 	DC.B $58,$34
-	DC.B $59,$34
+	DC.B $59,$DD
 	DC.B $5B,$23
-	DC.B $5C,$23
+	DC.B $5C,$EE
 	DC.B $69,$22
-	DC.B $6B,$12
+	DC.B $6B,$AA
 	DC.B $75,$11
-	DC.B $7D,$11
-	DC.B $7E,$11
+	DC.B $7D,$1F
+	DC.B $7E,$F1
 	DC.B $7F,$AA
 	DC.B $83,$23
 	DC.B $9D,$10
@@ -852,9 +913,9 @@
 	DC.B $F0,$33
 	DC.B $FC,$33
 	DC.B $FD,$43
-	DC.B $FE,$34
-	DC.B $FF,$44
-	DC.B $00,$23	; VPOSFF
+	DC.B $FE,$FF
+	DC.B $FF,$AA
+
 	DC.B $06,$44
 	DC.B $07,$34
 	DC.B $08,$34
@@ -867,7 +928,12 @@
 	DC.B $23,$11
 	DC.B $24,$12
 	DC.B $25,$11	; TOT 57 LINES
+	DC.B $00,$23	; VPOSFF
 
+	DC.B $B4,$23
+	DC.B $B5,$10
+	DC.B $B6,$23
+	DC.B $D0,$10
 	DC.B $2C,$11
 	DC.B $34,$11
 	DC.B $35,$22
@@ -884,10 +950,10 @@
 	DC.B $5D,$24
 	DC.B $5E,$24
 	DC.B $5F,$23
-	DC.B $6B,$22
-	DC.B $6C,$22
-	DC.B $6D,$22
-	DC.B $6E,$12
+	DC.B $6B,$F2
+	DC.B $6C,$B2
+	DC.B $6D,$A2
+	DC.B $6E,$82
 	DC.B $6F,$12
 	DC.B $77,$11
 	DC.B $7E,$AA
@@ -903,10 +969,7 @@
 	DC.B $B1,$10
 	DC.B $B2,$10
 	DC.B $B3,$23
-	DC.B $B4,$23
-	DC.B $B5,$10
-	DC.B $B6,$23
-	DC.B $D0,$10
+
 	DC.B $D1,$11
 	DC.B $DD,$11
 	DC.B $DE,$12
@@ -920,8 +983,8 @@
 	DC.B $04,$34
 	DC.B $05,$44
 	DC.B $06,$34
-	DC.B $13,$23
-	DC.B $14,$23
+	DC.B $13,$2A
+	DC.B $14,$2B
 	DC.B $1A,$22
 	DC.B $20,$12
 	DC.B $23,$11	; TOT 57 LINES
@@ -964,7 +1027,7 @@
 	DC.B $DE,$12
 	DC.B $DF,$12
 	DC.B $E0,$22
-	DC.B $E8,$23
+	DC.B $E8,$AF
 	DC.B $EB,$23
 	DC.B $EC,$33
 	DC.B $ED,$33
@@ -977,7 +1040,7 @@
 	DC.B $03,$34
 	DC.B $09,$33
 	DC.B $13,$32
-	DC.B $14,$22
+	DC.B $14,$FF
 	DC.B $15,$22
 	DC.B $20,$11
 	DC.B $21,$12
@@ -1011,7 +1074,7 @@
 	DC.B $99,$23
 	DC.B $9A,$10
 	DC.B $9F,$10
-	DC.B $A0,$10
+	DC.B $A0,$EE
 	DC.B $A3,$10
 	DC.B $A4,$10
 	DC.B $B4,$23
@@ -1037,11 +1100,13 @@
 	DC.B $08,$24
 	DC.B $09,$23
 	DC.B $15,$12
-	DC.B $16,$23
+	DC.B $16,$EE
 	DC.B $17,$22
 	DC.B $18,$12
 	DC.B $22,$11	; TOT 57 LINES
 
+	DC.B $78,$FF
+	DC.B $7C,$AA
 	DC.B $2C,$11
 	DC.B $35,$22
 	DC.B $40,$33
@@ -1054,8 +1119,7 @@
 	DC.B $6B,$23
 	DC.B $70,$22
 	DC.B $73,$12
-	DC.B $78,$11
-	DC.B $7C,$AA
+
 	DC.B $7F,$23
 	DC.B $91,$10
 	DC.B $92,$23
@@ -1093,7 +1157,7 @@
 	DC.B $01,$34
 	DC.B $0D,$23
 	DC.B $17,$12
-	DC.B $19,$23
+	DC.B $19,$F3
 	DC.B $1A,$12
 	DC.B $1B,$22
 	DC.B $1C,$12
@@ -1107,9 +1171,9 @@
 	DC.B $41,$33
 	DC.B $4B,$43
 	DC.B $4C,$44
-	DC.B $5C,$45
-	DC.B $5F,$44
-	DC.B $60,$45
+	DC.B $5C,$AA
+	DC.B $5F,$FF
+	DC.B $60,$AA
 	DC.B $67,$35
 	DC.B $68,$34
 	DC.B $6E,$33
@@ -1120,22 +1184,22 @@
 	DC.B $7F,$AA
 	DC.B $82,$23
 	DC.B $94,$11
-	DC.B $95,$11
+	DC.B $95,$FF
 	DC.B $96,$11
 	DC.B $99,$10
 	DC.B $9B,$23
 	DC.B $9C,$10
 	DC.B $A5,$23
 	DC.B $A6,$10
-	DC.B $AA,$10
+	DC.B $AA,$D0
 	DC.B $AB,$10
-	DC.B $AD,$10
+	DC.B $AD,$A0
 	DC.B $AE,$10
 	DC.B $B2,$23
 	DC.B $B3,$10
-	DC.B $B4,$10
+	DC.B $B4,$1F
 	DC.B $B6,$10
-	DC.B $B9,$10
+	DC.B $B9,$1A
 	DC.B $BA,$10
 	DC.B $C0,$10
 	DC.B $C1,$23
@@ -1151,11 +1215,11 @@
 	DC.B $FE,$35
 	DC.B $FF,$34
 	DC.B $00,$23	; VPOSFF
-	DC.B $0A,$33
+	DC.B $0A,$FF
 	DC.B $0C,$23
 	DC.B $17,$13
 	DC.B $18,$23
-	DC.B $19,$12
+	DC.B $19,$FF
 	DC.B $23,$11	; TOT 57 LINES
 
 	DC.B $2C,$11
@@ -1192,7 +1256,7 @@
 	DC.B $B9,$10
 	DC.B $C7,$11
 	DC.B $D2,$11
-	DC.B $D3,$11
+	DC.B $D3,$FF
 	DC.B $D4,$11
 	DC.B $D5,$22
 	DC.B $DD,$23
@@ -1213,7 +1277,7 @@
 	DC.B $16,$22
 	DC.B $17,$12
 	DC.B $23,$11	; TOT 55 LINES
-	DC.B $23,$11	; TOT 55 LINES
+	DC.B $23,$FF	; TOT 55 LINES
 	DC.B $23,$11	; TOT 55 LINES
 
 	DC.B $2C,$11
@@ -1243,15 +1307,15 @@
 	DC.B $9E,$10
 	DC.B $A5,$23
 	DC.B $A6,$10
-	DC.B $A8,$10
+	DC.B $A8,$FF
 	DC.B $A9,$10
-	DC.B $AA,$10
+	DC.B $AA,$FF
 	DC.B $AB,$10
-	DC.B $AC,$10
+	DC.B $AC,$AA
 	DC.B $AD,$10
-	DC.B $AF,$10
+	DC.B $AF,$BB
 	DC.B $B0,$10
-	DC.B $B6,$10
+	DC.B $B6,$EE
 	DC.B $B7,$10
 	DC.B $C5,$11
 	DC.B $CF,$21
@@ -1271,7 +1335,7 @@
 	DC.B $0C,$22
 	DC.B $16,$21
 	DC.B $17,$22
-	DC.B $18,$11
+	DC.B $18,$EF
 	DC.B $19,$11	; TOT 57 LINES
 
 	DC.B $2C,$23
@@ -1279,7 +1343,7 @@
 	DC.B $2F,$10
 	DC.B $30,$11
 	DC.B $34,$21
-	DC.B $35,$21
+	DC.B $35,$2A
 	DC.B $36,$21
 	DC.B $3E,$22
 	DC.B $44,$32
@@ -1288,8 +1352,8 @@
 	DC.B $47,$33
 	DC.B $50,$34
 	DC.B $57,$44
-	DC.B $58,$45
-	DC.B $70,$45
+	DC.B $58,$A5
+	DC.B $70,$4A
 	DC.B $72,$35
 	DC.B $73,$34
 	DC.B $7F,$34
@@ -1301,19 +1365,19 @@
 	DC.B $9F,$11
 	DC.B $A1,$12
 	DC.B $A2,$11
-	DC.B $A3,$11
+	DC.B $A3,$FF
 	DC.B $A4,$11
 	DC.B $A5,$11
 	DC.B $A9,$AA
 	DC.B $AA,$11
 	DC.B $AE,$AA
-	DC.B $AF,$11
-	DC.B $B2,$11
-	DC.B $B3,$11
-	DC.B $B5,$11
-	DC.B $B6,$11
+	DC.B $AF,$1B
+	DC.B $B2,$1C
+	DC.B $B3,$1D
+	DC.B $B5,$1E
+	DC.B $B6,$1F
 	DC.B $B7,$11
-	DC.B $B8,$11
+	DC.B $B8,$1A
 	DC.B $CF,$22
 	DC.B $D0,$11
 	DC.B $D1,$22
@@ -1333,10 +1397,10 @@
 	DC.B $1C,$11	; TOT 57 LINES
 
 	DC.B $2C,$11
-	DC.B $2D,$11
+	DC.B $2D,$B1
 	DC.B $2E,$10
-	DC.B $2F,$11
-	DC.B $34,$11
+	DC.B $2F,$1F
+	DC.B $34,$A1
 	DC.B $36,$20
 	DC.B $37,$21
 	DC.B $3E,$22
@@ -1346,7 +1410,7 @@
 	DC.B $51,$34
 	DC.B $56,$34
 	DC.B $57,$34
-	DC.B $58,$44
+	DC.B $58,$F4
 	DC.B $59,$44
 	DC.B $5B,$45
 	DC.B $74,$35
@@ -1393,7 +1457,7 @@
 	DC.B $2C,$10
 	DC.B $2D,$11
 	DC.B $32,$10
-	DC.B $33,$11
+	DC.B $33,$EB
 	DC.B $38,$10
 	DC.B $39,$21
 	DC.B $3A,$11
@@ -1419,7 +1483,7 @@
 	DC.B $9E,$12
 	DC.B $9F,$22
 	DC.B $A0,$22
-	DC.B $A1,$12
+	DC.B $A1,$AB
 	DC.B $A2,$12
 	DC.B $A3,$22
 	DC.B $A4,$12
@@ -1442,7 +1506,7 @@
 	DC.B $00,$23	; VPOSFF
 	DC.B $09,$22
 	DC.B $14,$12
-	DC.B $15,$22
+	DC.B $15,$FF
 	DC.B $16,$21
 	DC.B $17,$12
 	DC.B $18,$21
@@ -2781,64 +2845,6 @@
 	DC.B $1F,$11
 	DC.B $20,$22
 	DC.B $21,$11	; TOT 57 LINES
-
-	DC.B $2C,$10
-	DC.B $2D,$11
-	DC.B $36,$12
-	DC.B $37,$22
-	DC.B $38,$12
-	DC.B $39,$22
-	DC.B $3F,$23
-	DC.B $45,$23
-	DC.B $46,$33
-	DC.B $48,$34
-	DC.B $49,$33
-	DC.B $4A,$34
-	DC.B $50,$34
-	DC.B $51,$44
-	DC.B $53,$45
-	DC.B $67,$55
-	DC.B $68,$45
-	DC.B $69,$55
-	DC.B $6A,$45
-	DC.B $6B,$55
-	DC.B $93,$56
-	DC.B $94,$55
-	DC.B $97,$56
-	DC.B $98,$55
-	DC.B $9B,$56
-	DC.B $9C,$55
-	DC.B $9D,$56
-	DC.B $9E,$55
-	DC.B $9F,$56
-	DC.B $C9,$55
-	DC.B $CA,$56
-	DC.B $CC,$55
-	DC.B $CD,$56
-	DC.B $CE,$55
-	DC.B $D0,$56
-	DC.B $D1,$55
-	DC.B $D3,$56
-	DC.B $D4,$55
-	DC.B $D7,$56
-	DC.B $D8,$55
-	DC.B $FA,$44
-	DC.B $FB,$54
-	DC.B $FC,$44
-	DC.B $00,$23	; VPOSFF
-	DC.B $04,$43
-	DC.B $08,$33
-	DC.B $0E,$32
-	DC.B $12,$32
-	DC.B $13,$32
-	DC.B $14,$22
-	DC.B $18,$21
-	DC.B $20,$21
-	DC.B $21,$10
-	DC.B $22,$11
-	DC.B $23,$10
-	DC.B $2A,$23
-	DC.B $2B,$10	; TOT 57 LINES
 
 	DC.B $2C,$AA
 	DC.B $2D,$11
