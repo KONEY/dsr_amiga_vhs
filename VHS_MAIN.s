@@ -170,14 +170,12 @@ Demo:			;a4=VBR, a6=Custom Registers Base addr
 	;JSR	_startmusic
 ;********************  main loop  ********************
 MainLoop:	
-	LEA	COPPER\.BplPtrs+2+8,A1
+	BSR.W	__UPDATE_V_LINE
+
 	BTST	#6,$BFE001		; POTINP - LMB pressed?
 	BNE.S	.skip
 	;MOVE.W	#0,NOISE_IDX5
-	LEA	PLANE_1,A0
-	MOVE.W	A0,4(A1)
 	.skip:
-	ADD.W	#$96,4(a1)
 
 	;* FOR TIMED EVENTS ON BLOCK ****
 	MOVE.W	TXT_TIMELINE_IDX,D5
@@ -188,7 +186,7 @@ MainLoop:
 	JSR	(A4)			; EXECUTE SUBROUTINE BLOCK#
 
 	; $0192,$0196,$019A,$019E
-	LEA	GREY_COLS,A6
+	LEA	BLUE_COLS,A6
 	MOVE.W	-2(A6),D0			; IDX
 
 	TST.B	FRAME_STROBE
@@ -196,9 +194,10 @@ MainLoop:
 	MOVE.B	#1,FRAME_STROBE
 		
 	; ## BG COLORS SHUFFLE ##
-	MOVE.W	(A6,D0.W),$DFF192
+	LEA	COPPER\.PaletteBG+2,A1
+	MOVE.W	(A6,D0.W),(A1)
 	ADD.W	#$2,D0
-	MOVE.W	(A6,D0.W),$DFF19E
+	MOVE.W	(A6,D0.W),4(A1)
 	ADD.W	#$2,D0
 	AND.W	#$3F,D0
 	MOVE.W	D0,-2(A6)			; IDX
@@ -226,9 +225,10 @@ MainLoop:
 	.oddFrame:
 	MOVE.B	#0,FRAME_STROBE
 	; ## BG COLORS SHUFFLE ##
-	MOVE.W	(A6,D0.W),$DFF19A
+	LEA	COPPER\.PaletteBG+6,A1
+	MOVE.W	(A6,D0.W),(A1)
 	ADD.W	#$2,D0
-	MOVE.W	(A6,D0.W),$DFF196
+	MOVE.W	(A6,D0.W),4(A1)
 	ADD.W	#$2,D0
 	AND.W	#$BF,D0
 	MOVE.W	D0,-2(A6)			; IDX
@@ -270,12 +270,12 @@ MainLoop:
 	BSR.W	__BLIT_GRADIENT_IN_COPPER
 	ENDC
 
-	.WaitRasterCopper:
-	;MOVE.W	#$0A0F,$DFF180	; show rastertime left down to $12c
-	BTST	#$4,INTENAR+1
-	BNE.S	.WaitRasterCopper
-	;MOVE.W	#$0000,$DFF180	; show rastertime left down to $12c
-	MOVE.W	#$8010,INTENA
+	;.WaitRasterCopper:
+	;;MOVE.W	#$0A0F,$DFF180	; show rastertime left down to $12c
+	;BTST	#$4,INTENAR+1
+	;BNE.S	.WaitRasterCopper
+	;;MOVE.W	#$0000,$DFF180	; show rastertime left down to $12c
+	;MOVE.W	#$8010,INTENA
 
 	;*--- main loop end ---*
 	;BTST	#6,$BFE001	; POTINP - LMB pressed?
@@ -525,12 +525,17 @@ __RACE_BEAM:
 	SUB.W	#$2,D5
 	MOVE.W	D5,BPLMOD_IDX
 	CLR.L	D2
-	;;MOVE.W	VHPOSR,D4		; for bug?
-	;;.waitVisibleRaster:
-	;;MOVE.W	VHPOSR,D4
-	;;AND.W	#$FF00,D4		; read vertical beam
+	;MOVE.W	VHPOSR,D4		; for bug?
+	;.waitVisibleRaster:
+	;MOVE.W	VHPOSR,D4
+	;AND.W	#$FF00,D4		; read vertical beam
 	;CMP.W	#$3700,D4		; 2C
 	;BNE.S	.waitVisibleRaster
+
+	.dummyWait:
+	MOVE.W	VPOSR,D1		; Read vert most sig. bits
+	BTST	#0,D1
+	BNE.S	.dummyWait
 
 	.waitNextRaster:
 	MOVE.W	VHPOSR,D2
@@ -597,7 +602,6 @@ __RACE_BEAM:
 	;.dontSkip:
 	CMP.W	#$0400,D2		; 12.032 - #$2F00
 	BEQ.W	.waitNextRaster
-	;MOVE.W	#$0FF0,$DFF180	; show rastertime left down to $12c
 	;MOVE.W	#0,BPLCON1	; RESET REGISTER
 	;MOVE.L	#0,BPL1MOD	; RESET
 	RTS
@@ -611,6 +615,19 @@ __V_DISPLACE:
 	MOVE.W	(A2,D0.W),D1
 	ADD.W	D1,A0
 	BSR.W	PokePtrs
+	RTS
+
+__UPDATE_V_LINE:
+	LEA	COPPER\.BplPtrs+2+8+4,A1
+	TST.B	V_LINE_IDX
+	BNE.S	.skip
+	LEA	PLANE_1,A0
+	MOVE.W	A0,(A1)
+	MOVE.B	#$FF,V_LINE_IDX
+	RTS
+	.skip:
+	SUB.B	#$7,V_LINE_IDX
+	ADD.W	#$90,(a1)
 	RTS
 
 __FETCH_LETTER:
@@ -733,10 +750,10 @@ V_IDX_2:		DC.W $32
 V_OFFSET:		DC.W 0,40,40,80,80,40,40,0,0,-40,-80,-80,-40,-40,0,0
 		DC.W 0,0,40,40,80,80,40,0,-40,-40,-80,-80,-40,-40,-40,0
 BLUE_COLS_IDX:	DC.W $0
-BLUE_COLS:	DC.W $000F,$000D,$000E,$000C,$001C,$000C,$000A,$0019
-		DC.W $000A,$000C,$000B,$000A,$000C,$000B,$000C,$000D
-		DC.W $000E,$000F,$000E,$000D,$010E,$000C,$000D,$000C
-		DC.W $000B,$010B,$000B,$020B,$000B,$000D,$000C,$000E
+BLUE_COLS:	DC.W $000F,$040F,$010F,$030F,$002E,$010E,$022E,$020E
+		DC.W $000D,$030D,$031D,$032D,$0219,$020C,$040C,$030C
+		DC.W $000B,$020B,$050B,$021B,$010A,$030A,$042A,$040A
+		DC.W $000C,$011C,$032C,$010C,$000E,$040E,$021E,$050E
 GREY_COLS_IDX:	DC.W $0
 GREY_COLS:	DC.W $011E,$000D,$011F,$000D,$001B,$000F,$000E,$000B
 		DC.W $0009,$0128,$0019,$0219,$0029,$0138,$0030,$0035
@@ -814,6 +831,7 @@ NOISE_UPD_PLANE3:	DC.L PLANE_3
 NOISE_UPD_PLANE5:	DC.L PLANE_5
 NOISE_COP_PTR3:	DC.L COPPER\.BplPtrs+2+24
 NOISE_COP_PTR5:	DC.L COPPER\.BplPtrs+2+40
+V_LINE_IDX:	DC.B $FF,0
 ;*******************************************************************************
 	SECTION	ChipData,DATA_C	;declared data that must be in chipmem
 ;*******************************************************************************
@@ -841,15 +859,16 @@ COPPER:	; #### COPPERLIST ####################################################
 
 	.Palette:
 	DC.W $0180,$0001
-	;DC.W $0182,$00D1,$0184,$0F0E		; DISABLE!
+	;DC.W $0182,$00D1,$0184,$0F0E	; Managed by CPU
 	DC.W $0186,$000F
 	DC.W $0188,$0FFF,$018A,$0DEF,$018C,$0DDD,$018E,$0CDE
 
-	;DC.W $0190,$001E,$0194,$0888,$0198,$0B05,$019C,$0170
-	DC.W $0190,$055B,$0194,$0B37,$0198,$0282,$019C,$0c99
+	.PaletteBG:
+	DC.W $019E,$000F,$0192,$000A,$0196,$000C,$019A,$000D
 
-	;DC.W $0190,$002C,$0192,$0F1E,$0194,$001E,$0196,$012F	; DISABLE!
-	;DC.W $0198,$022E,$019A,$000F,$019C,$002C,$019E,$030F	; DISABLE!
+	.PaletteHLine:
+	;DC.W $0190,$055B,$0194,$0B37,$0198,$0282,$019C,$0C99
+	DC.W $0190,$0AAA,$0194,$0EEE,$0198,$0666,$019C,$0888
 
 	DC.W $01A0,$0F0F,$01A2,$0CCC,$01A4,$0048,$01A6,$0048
 	DC.W $01A8,$0158,$01AA,$025C,$01AC,$014E,$01AE,$0FFF
@@ -884,8 +903,8 @@ COPPER:	; #### COPPERLIST ####################################################
 	IFEQ DYNCOPPER
 	DC.W $FFDF,$FFFE		; allow VPOS>$ff
 	ENDC
-	DC.W $3709,$FF00		; ## RASTER END ## #$12C?
-	DC.W $009A,$0010		; CLEAR RASTER BUSY FLAG
+	;DC.W $3709,$FF00		; ## RASTER END ## #$12C?
+	;DC.W $009A,$0010		; CLEAR RASTER BUSY FLAG
 	DC.W $FFFF,$FFFE		; magic value to end copperlist
 
 ;*******************************************************************************
