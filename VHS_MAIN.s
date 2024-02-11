@@ -36,22 +36,22 @@ Demo:			;a4=VBR, a6=Custom Registers Base addr
 	MOVE.W	#%1000001111100000,DMACON
 	;*--- start copper ---*
 	LEA	TXT_GRID,A0	; PF_1 OSD
-	LEA	COPPER\.BplPtrs,A1
+	LEA	COPPER\.BplPtrs+2,A1
 	BSR.W	PokePtrs
 	LEA	PLANE_1,A0	; PF_2 NOIZE (FILLED)
-	LEA	COPPER\.BplPtrs+8,A1
+	LEA	COPPER\.BplPtrs+2+8,A1
 	BSR.W	PokePtrs
 	LEA	TXT_GRID,A0	; PF_1 OSD
-	LEA	COPPER\.BplPtrs+16,A1
+	LEA	COPPER\.BplPtrs+2+16,A1
 	BSR.W	PokePtrs
 	LEA	TXT_GRID,A0	; PF_2 NOIZE
-	LEA	COPPER\.BplPtrs+24,A1
+	LEA	COPPER\.BplPtrs+2+24,A1
 	BSR.W	PokePtrs
 	LEA	TXT_GRID,A0	; PF_1 OSD
-	LEA	COPPER\.BplPtrs+32,A1
+	LEA	COPPER\.BplPtrs+2+32,A1
 	BSR.W	PokePtrs
 	LEA	TXT_GRID,A0	; PF_2 NOIZE
-	LEA	COPPER\.BplPtrs+40,A1
+	LEA	COPPER\.BplPtrs+2+40,A1
 	BSR.W	PokePtrs
 
 	IFNE DYNCOPPER
@@ -60,18 +60,11 @@ Demo:			;a4=VBR, a6=Custom Registers Base addr
 	LEA	COPPER_BUFFER,A1	; COPPER_BUFFER
 	LEA	GRADIENT_REGISTERS,A3
 	LEA	GRADIENT_PTRS,A4
-	;LEA	(A4),A5
-	;ADD.L	#COP_FRAMES*4-4,A5 ; A4 PTR START - A5 PTR STOP
 	MOVE.W	#COP_FRAMES-1,D4
 	.loop2:
 	MOVE.L	A1,(A4)+
-	;MOVE.L	A1,-(A5)
 	BSR.W	__DECRUNCH_COPPERLIST
 	DBRA	D4,.loop2
-	;LEA	GRADIENT_VALS,A0	; INITIAL COPPER
-	;LEA	COPPER\.Waits,A1
-	;BSR.W	__DECRUNCH_COPPERLIST
-	; #### EXTRACT COPPERLISTS  ######
 	LEA	COPPER_BUFFER,A4
 	LEA	COPPER\.Waits,A5
 	BSR.W	__BLIT_GRADIENT_IN_COPPER
@@ -80,6 +73,10 @@ Demo:			;a4=VBR, a6=Custom Registers Base addr
 	MOVE.L	#COPPER,COP1LC	; ## POINT COPPERLIST ##
 	; #### CPU INTENSIVE TASKS BEFORE STARTING MUSIC	
 	LEA	PLANE_1,A4	; FILLS A PLANE
+	;BSR.W	__SCANLINIZE_PLANE
+	BSR.W	__FILLSOLID	; SOME DUMMY OPERATION...
+	MOVE.L	#$FEDCBA98,(A4)+	; MASK?
+	ADD.L	#bypl,A4		; LEAVE EMPTY LINES FOR SCAN FX
 	BSR.W	__FILLSOLID	; SOME DUMMY OPERATION...
 	LEA	PLANE_3,A4	; FILLS A PLANE
 	BSR.W	__FILLRND		; SOME DUMMY OPERATION...
@@ -173,10 +170,14 @@ Demo:			;a4=VBR, a6=Custom Registers Base addr
 	;JSR	_startmusic
 ;********************  main loop  ********************
 MainLoop:	
-	BTST	#6,$BFE001	; POTINP - LMB pressed?
+	LEA	COPPER\.BplPtrs+2+8,A1
+	BTST	#6,$BFE001		; POTINP - LMB pressed?
 	BNE.S	.skip
-	MOVE.W	#0,NOISE_IDX5
+	;MOVE.W	#0,NOISE_IDX5
+	LEA	PLANE_1,A0
+	MOVE.W	A0,4(A1)
 	.skip:
+	ADD.W	#$96,4(a1)
 
 	;* FOR TIMED EVENTS ON BLOCK ****
 	MOVE.W	TXT_TIMELINE_IDX,D5
@@ -205,7 +206,7 @@ MainLoop:
 	;MOVE.L	#$000F030A,$DFF182		; BLUE
 	MOVE.L	#$0F0000FF,$DFF182		; TIKTOK
 
-	LEA	COPPER\.BplPtrs,A1		; VERTICAL TXT
+	LEA	COPPER\.BplPtrs+2,A1	; VERTICAL TXT
 	MOVE.W	V_IDX_1,D0		; VERTICAL TXT
 	BSR.W	__V_DISPLACE		; VERTICAL TXT
 	MOVE.W	D0,V_IDX_1		; VERTICAL TXT
@@ -235,7 +236,7 @@ MainLoop:
 	;MOVE.L	#$010A000E,$DFF182		; BLUE
 	MOVE.L	#$0F0700F5,$DFF182		; G+P
 
-	LEA	COPPER\.BplPtrs+16,A1	; VERTICAL TXT
+	LEA	COPPER\.BplPtrs+2+16,A1	; VERTICAL TXT
 	MOVE.W	V_IDX_2,D0		; VERTICAL TXT
 	BSR.W	__V_DISPLACE		; VERTICAL TXT
 	MOVE.W	D0,V_IDX_2		; VERTICAL TXT
@@ -244,7 +245,7 @@ MainLoop:
 	LEA	NOISE_IDX5,A2
 	LEA	PLANE_5,A0
 	MOVE.W	#bypl*2*2+12,D1		; OFFSET
-	MOVE.W	#bypl*2,D2		; SUBSTR
+	MOVE.W	#bypl*3+2,D2		; SUBSTR
 	BSR.W	__UPDT_BPL_PTR
 	MOVE.L	A0,NOISE_UPD_PLANE5
 	; ## RANDOMIZE ADDRESS POINTS OF NOISE PLANES ##
@@ -290,24 +291,25 @@ MainLoop:
 	RTS
 
 ;********** Demo Routines **********
-PokePtrs:				; SUPER SHRUNK REFACTOR
-	MOVE.L	A0,-4(A0)	; Needs EMPTY plane to write addr
-	MOVE.W	-4(A0),2(A1)	; high word of address
-	MOVE.W	-2(A0),6(A1)	; low word of address
+PokePtrs:				; EVEN SHRUNKER REFACTOR! :)
+	MOVE.L	A0,(A0)		; Needs EMPTY plane to write addr
+	MOVE.W	(A0),(A1)		; high word of address
+	MOVE.W	A0,4(A1)		; low word of address
+	CLR.L	(A0)		; Clear the inital mess?
 	RTS
 
 VBint:				; Blank template VERTB interrupt
-	movem.l	d0/a6,-(sp)	; Save used registers
-	lea	$dff000,a6
-	btst	#5,$1f(a6)	; check if it's our vertb int.
-	beq.s	.notvb
-	;*--- do stuff here ---*
-	moveq	#$20,d0		; poll irq bit
-	move.w	d0,$9c(a6)
-	move.w	d0,$9c(a6)
-	.notvb:	
-	movem.l	(sp)+,d0/a6	; restore
-	rte
+	MOVEM.L	D0/A6,-(SP)	; SAVE USED REGISTERS
+	LEA	$DFF000,A6
+	BTST	#5,$1F(A6)	; CHECK IF IT'S OUR VERTB INT.
+	BEQ.S	.notVB
+	;*--- DO STUFF HERE ---*
+	MOVEQ	#$20,D0		; POLL IRQ BIT
+	MOVE.W	D0,$9C(A6)
+	MOVE.W	D0,$9C(A6)
+	.notVB:	
+	MOVEM.L	(SP)+,D0/A6	; RESTORE
+	RTE
 
 __UPDT_BPL_PTR:
 	ADD.W	(A2),A0
@@ -469,10 +471,13 @@ __PXLX2_PLANE:
 	RTS
 
 __SCANLINIZE_PLANE:
+	MOVE.L	#$0,D0
+	MOVE.L	#-1,D1
 	MOVE.W	#(bypl/4*he)-1,D7
 	.outerLoop:
 	MOVEM.L	D0-D1,(A4)
 	LEA	8(A4),A4
+	EXG	D0,D1
 	DBRA	D7,.outerLoop
 	RTS
 
@@ -520,10 +525,10 @@ __RACE_BEAM:
 	SUB.W	#$2,D5
 	MOVE.W	D5,BPLMOD_IDX
 	CLR.L	D2
-	MOVE.W	VHPOSR,D4		; for bug?
-	.waitVisibleRaster:
-	MOVE.W	VHPOSR,D4
-	AND.W	#$FF00,D4		; read vertical beam
+	;;MOVE.W	VHPOSR,D4		; for bug?
+	;;.waitVisibleRaster:
+	;;MOVE.W	VHPOSR,D4
+	;;AND.W	#$FF00,D4		; read vertical beam
 	;CMP.W	#$3700,D4		; 2C
 	;BNE.S	.waitVisibleRaster
 
@@ -757,17 +762,18 @@ TXT_IDX:		DC.W $0
 TXT_HEADER:	DC.B " PLAY >         SYNTECHNO  "
 TXT_BODY:		DC.B " PLEASE INSERT A CASSETTE  "
 		DC.B " SYNTECHNO BY KONEY 2024   "
-		DC.B " AKA AMIGA VHS - MY THIRD  "
-		DC.B " 40K AMIGA INTRO! VHS FX   "
-		DC.B " ARE ALL MADE BY AMIGA HW  "
-		DC.B " TO LEAVE THE CPU FREE TO  "
-		DC.B " RACE THE  BEAM!!!         "
-		DC.B " I JUST REALIZE HOW        "
-		DC.B " ANNOYING IS TO WRITE      "
-		DC.B " MAX 26 CHARS PER LINE     "
-		DC.B " AND OF COURSE READING     "
-		DC.B " WILL BE EVEN WORSE :)     "
-		DC.B " ------------------------  "
+		DC.B " AKA AMIGA VHS             "
+		DC.B " MY 3RD 40K AMIGA INTRO!   "
+		DC.B " VHS FX ALL BY AMIGA HW    "
+		DC.B " TO LEAVE THE CPU FREE     "
+		DC.B " FOR RACING THE  BEAM!!    "
+		DC.B " I JUST REALIZED NOW HOW   "
+		DC.B " ANNOYING IT IS TO WRITE   "
+		DC.B " MAX 26 CHARS PER LINE...  "
+		DC.B " OF COURSE READING WILL    "
+		DC.B " BE A NIGHTMARE :)         "
+		DC.B " REWIND...                 "
+		DC.B " >>>>>>>>>>>>>>>>>>>>>>>>  "
 		DC.W $0
 TXT_FOOTER:	DC.B " TRACKING ----I---------   "
 		EVEN
@@ -806,8 +812,8 @@ RELOC5:		DC.L NOISE_UPD_PLANE5
 NOISE_UPD_PLANE3:	DC.L PLANE_3
 		DC.L 0
 NOISE_UPD_PLANE5:	DC.L PLANE_5
-NOISE_COP_PTR3:	DC.L COPPER\.BplPtrs+24
-NOISE_COP_PTR5:	DC.L COPPER\.BplPtrs+40
+NOISE_COP_PTR3:	DC.L COPPER\.BplPtrs+2+24
+NOISE_COP_PTR5:	DC.L COPPER\.BplPtrs+2+40
 ;*******************************************************************************
 	SECTION	ChipData,DATA_C	;declared data that must be in chipmem
 ;*******************************************************************************
@@ -834,10 +840,13 @@ COPPER:	; #### COPPERLIST ####################################################
 	;DC.W $102,$00	; SCROLL REGISTER (AND PLAYFIELD PRI)
 
 	.Palette:
-	DC.W $0180,$0000
+	DC.W $0180,$0001
 	;DC.W $0182,$00D1,$0184,$0F0E		; DISABLE!
 	DC.W $0186,$000F
 	DC.W $0188,$0FFF,$018A,$0DEF,$018C,$0DDD,$018E,$0CDE
+
+	;DC.W $0190,$001E,$0194,$0888,$0198,$0B05,$019C,$0170
+	DC.W $0190,$055B,$0194,$0B37,$0198,$0282,$019C,$0c99
 
 	;DC.W $0190,$002C,$0192,$0F1E,$0194,$001E,$0196,$012F	; DISABLE!
 	;DC.W $0198,$022E,$019A,$000F,$019C,$002C,$019E,$030F	; DISABLE!
@@ -875,7 +884,7 @@ COPPER:	; #### COPPERLIST ####################################################
 	IFEQ DYNCOPPER
 	DC.W $FFDF,$FFFE		; allow VPOS>$ff
 	ENDC
-	DC.W $3809,$FF00		; ## RASTER END ## #$12C?
+	DC.W $3709,$FF00		; ## RASTER END ## #$12C?
 	DC.W $009A,$0010		; CLEAR RASTER BUSY FLAG
 	DC.W $FFFF,$FFFE		; magic value to end copperlist
 
@@ -897,5 +906,6 @@ PLANE_4:		DS.B he*bypl
 PLANE_5:		DS.B he*bypl	; NOIZE
 PLANE_6:		DS.B he*bypl
 PLANE_1:		DS.B he*bypl
+PLANE_2:		DS.B (he+2)*bypl
 DUMMY_1:		DS.B he*8*bypl
 END
