@@ -4,8 +4,8 @@
 	SECTION	"Code",CODE
 	INCLUDE	"PhotonsMiniWrapper1.04!.s"
 	INCLUDE	"custom-registers.i"
-	;INCLUDE	"med/med_feature_control.i"	; MED CFGs
-	;INCLUDE	"med/MED_PlayRoutine.i"
+	INCLUDE	"med/med_feature_control.i"	; MED CFGs
+	INCLUDE	"med/MED_PlayRoutine.i"
 ;********** Constants **********
 wi		EQU 320
 he		EQU 256		; screen height
@@ -179,7 +179,7 @@ Demo:			;a4=VBR, a6=Custom Registers Base addr
 
 	; in photon's wrapper comment:;move.w d2,$9a(a6) ;INTENA
 	;MOVE.W	#27,MED_START_POS	; skip to pos# after first block
-	;JSR	_startmusic
+	JSR	_startmusic
 ;********************  main loop  ********************
 MainLoop:	
 	BSR.W	__UPDATE_V_LINE
@@ -207,8 +207,8 @@ MainLoop:
 		
 	; ## BG COLORS SHUFFLE ##
 	LEA	COPPER\.PaletteBG+2,A1
-	MOVE.W	(A6,D0.W),(A1)
-	ADD.W	#$2,D0
+	;MOVE.W	(A6,D0.W),(A1)
+	;ADD.W	#$2,D0
 	MOVE.W	(A6,D0.W),4(A1)
 	ADD.W	#$2,D0
 	AND.W	#$3F,D0
@@ -297,9 +297,9 @@ MainLoop:
 	;*--- exit ---*
 	.exit:
 	; ---  quit MED code  ---
-	;MOVEM.L	D0-A6,-(SP)
-	;JSR	_endmusic
-	;MOVEM.L	(SP)+,D0-A6
+	MOVEM.L	D0-A6,-(SP)
+	JSR	_endmusic
+	MOVEM.L	(SP)+,D0-A6
 	RTS
 
 ;********** Demo Routines **********
@@ -505,7 +505,7 @@ __FILLSOLID:
 	MOVE.W	#he-1,D4		; QUANTE LINEE
 	.outerloop:		; NUOVA RIGA
 	MOVE.L	#-1,D0		; ALL BITS
-	BSR.W	__RND\._byte
+	;BSR.W	__RND\._byte
 	AND.W	#$F000,D5
 	CMP.W	#$A000,D5
 	BNE.S	.noNoiseLine
@@ -574,14 +574,14 @@ __RACE_BEAM:
 
 	CMP.W	D6,D2		; 12.032 - #$2F00
 	BNE.S	.noLine
-	MOVE.W	#$0FFF,$DFF19A	; WHITE LINE
+	MOVE.W	#$0FFF,$DFF19E	; WHITE LINE
 	BRA.S	.noLine2
 	.noLine:
 
 	;SUB.W	#1,D6
 	;CMP.W	D6,D2		; 12.032 - #$2F00
 	;BNE.S	.noLine2
-	MOVE.W	#$000F,$DFF19A	; WHITE LINE
+	;MOVE.W	#$000F,$DFF19A	; WHITE LINE
 	.noLine2:
 
 	CMP.W	#$5700,D2		; 12.032 - #$2F00
@@ -788,7 +788,7 @@ V_IDX_2:		DC.W $32
 V_OFFSET:		DC.W 0,40,40,80,80,40,40,0,0,-40,-80,-80,-40,-40,0,0
 		DC.W 0,0,40,40,80,80,40,0,-40,-40,-80,-80,-40,-40,-40,0
 BLUE_COLS_IDX:	DC.W $0
-BLUE_COLS:	DC.W $000F,$040F,$010F,$030F,$002E,$010E,$022E,$020E
+BLUE_COLS:	DC.W $040F,$010F,$030F,$002E,$010E,$022E,$020E
 		DC.W $0129,$000D,$030D,$031D,$032D,$0219,$020C,$040C,$030C
 		DC.W $0028,$000B,$020B,$050B,$021B,$010A,$030A,$042A,$040A
 		DC.W $000C,$011C,$032C,$010C,$000E,$040E,$021E,$050E
@@ -896,9 +896,9 @@ V_LINE_IDX:	DC.B $FF,0
 FONT:		INCBIN "VHS_font.raw",0
 		EVEN
 
-;MED_MODULE:	INCBIN "med/SYNTECHNO.med"
-;_chipzero:	DC.L 0
-;_MED_MODULE:
+MED_MODULE:	INCBIN "med/SYNTECHNO.med"
+_chipzero:	DC.L 0
+_MED_MODULE:
 
 COPPER:	; #### COPPERLIST ####################################################
 	DC.W $1FC,0	; Slow fetch mode, remove if AGA demo.
@@ -949,13 +949,368 @@ COPPER:	; #### COPPERLIST ####################################################
 	DC.W $100,bpls*$1000+$600	;enable bitplanes
 	;DC.W $104,%0000000001000000	; BPLCON2
 
+	; https://gradient-blaster.grahambates.com/?points=10f@0,10d@52,21f@123,00f@207,01c@255&steps=256&blendMode=perceptual&ditherMode=blueNoiseMono&target=amigaOcs&ditherAmount=100
+	Gradient:
+	dc.w $19e,$00f
+	dc.w $2d07,$fffe
+	dc.w $19e,$10f
+	dc.w $2e07,$fffe
+	dc.w $19e,$00f
+	dc.w $2f07,$fffe
+	dc.w $19e,$10f
+	dc.w $3107,$fffe
+	dc.w $19e,$00f
+	dc.w $3307,$fffe
+	dc.w $19e,$10f
+	dc.w $3607,$fffe
+	dc.w $19e,$00f
+	dc.w $3707,$fffe
+	dc.w $19e,$10f
+	dc.w $3807,$fffe
+	dc.w $19e,$00f
+	dc.w $3907,$fffe
+	dc.w $19e,$10f
+	dc.w $3a07,$fffe
+	dc.w $19e,$00e
+	dc.w $3b07,$fffe
+	dc.w $19e,$10f
+	dc.w $3c07,$fffe
+	dc.w $19e,$00f
+	dc.w $3d07,$fffe
+	dc.w $19e,$10f
+	dc.w $3e07,$fffe
+	dc.w $19e,$00e
+	dc.w $3f07,$fffe
+	dc.w $19e,$10f
+	dc.w $4107,$fffe
+	dc.w $19e,$00e
+	dc.w $4207,$fffe
+	dc.w $19e,$10f
+	dc.w $4307,$fffe
+	dc.w $19e,$00e
+	dc.w $4407,$fffe
+	dc.w $19e,$10e
+	dc.w $4507,$fffe
+	dc.w $19e,$10f
+	dc.w $4607,$fffe
+	dc.w $19e,$00e
+	dc.w $4707,$fffe
+	dc.w $19e,$10f
+	dc.w $4807,$fffe
+	dc.w $19e,$00e
+	dc.w $4907,$fffe
+	dc.w $19e,$10f
+	dc.w $4a07,$fffe
+	dc.w $19e,$00e
+	dc.w $4b07,$fffe
+	dc.w $19e,$10f
+	dc.w $4c07,$fffe
+	dc.w $19e,$00e
+	dc.w $4d07,$fffe
+	dc.w $19e,$10e
+	dc.w $4f07,$fffe
+	dc.w $19e,$00e
+	dc.w $5007,$fffe
+	dc.w $19e,$10f
+	dc.w $5107,$fffe
+	dc.w $19e,$10e
+	dc.w $5207,$fffe
+	dc.w $19e,$00e
+	dc.w $5307,$fffe
+	dc.w $19e,$10e
+	dc.w $5507,$fffe
+	dc.w $19e,$00e
+	dc.w $5607,$fffe
+	dc.w $19e,$10e
+	dc.w $5807,$fffe
+	dc.w $19e,$00d
+	dc.w $5907,$fffe
+	dc.w $19e,$10e
+	dc.w $5a07,$fffe
+	dc.w $19e,$00e
+	dc.w $5b07,$fffe
+	dc.w $19e,$10e
+	dc.w $5c07,$fffe
+	dc.w $19e,$00d
+	dc.w $5d07,$fffe
+	dc.w $19e,$10e
+	dc.w $5e07,$fffe
+	dc.w $19e,$00d
+	dc.w $5f07,$fffe
+	dc.w $19e,$10e
+	dc.w $6007,$fffe
+	dc.w $19e,$00d
+	dc.w $6107,$fffe
+	dc.w $19e,$10e
+	dc.w $6207,$fffe
+	dc.w $19e,$10d
+	dc.w $6307,$fffe
+	dc.w $19e,$10e
+	dc.w $6407,$fffe
+	dc.w $19e,$00d
+	dc.w $6507,$fffe
+	dc.w $19e,$10e
+	dc.w $6707,$fffe
+	dc.w $19e,$00d
+	dc.w $6807,$fffe
+	dc.w $19e,$10e
+	dc.w $6907,$fffe
+	dc.w $19e,$00d
+	dc.w $6a07,$fffe
+	dc.w $19e,$10e
+	dc.w $6e07,$fffe
+	dc.w $19e,$00d
+	dc.w $6f07,$fffe
+	dc.w $19e,$10e
+	dc.w $7207,$fffe
+	dc.w $19e,$00d
+	dc.w $7307,$fffe
+	dc.w $19e,$10e
+	dc.w $7707,$fffe
+	dc.w $19e,$20f
+	dc.w $7807,$fffe
+	dc.w $19e,$10e
+	dc.w $7d07,$fffe
+	dc.w $19e,$20f
+	dc.w $7e07,$fffe
+	dc.w $19e,$10e
+	dc.w $8007,$fffe
+	dc.w $19e,$10f
+	dc.w $8107,$fffe
+	dc.w $19e,$10e
+	dc.w $8207,$fffe
+	dc.w $19e,$10f
+	dc.w $8307,$fffe
+	dc.w $19e,$10e
+	dc.w $8507,$fffe
+	dc.w $19e,$21f
+	dc.w $8607,$fffe
+	dc.w $19e,$10e
+	dc.w $8707,$fffe
+	dc.w $19e,$10f
+	dc.w $8807,$fffe
+	dc.w $19e,$10e
+	dc.w $8907,$fffe
+	dc.w $19e,$20f
+	dc.w $8a07,$fffe
+	dc.w $19e,$10e
+	dc.w $8b07,$fffe
+	dc.w $19e,$21f
+	dc.w $8c07,$fffe
+	dc.w $19e,$10e
+	dc.w $8d07,$fffe
+	dc.w $19e,$10f
+	dc.w $8e07,$fffe
+	dc.w $19e,$20f
+	dc.w $8f07,$fffe
+	dc.w $19e,$10e
+	dc.w $9007,$fffe
+	dc.w $19e,$21f
+	dc.w $9107,$fffe
+	dc.w $19e,$10f
+	dc.w $9207,$fffe
+	dc.w $19e,$10e
+	dc.w $9307,$fffe
+	dc.w $19e,$21f
+	dc.w $9407,$fffe
+	dc.w $19e,$20f
+	dc.w $9507,$fffe
+	dc.w $19e,$10f
+	dc.w $9707,$fffe
+	dc.w $19e,$21f
+	dc.w $9807,$fffe
+	dc.w $19e,$10f
+	dc.w $9907,$fffe
+	dc.w $19e,$21f
+	dc.w $9a07,$fffe
+	dc.w $19e,$10f
+	dc.w $9b07,$fffe
+	dc.w $19e,$21f
+	dc.w $9c07,$fffe
+	dc.w $19e,$10f
+	dc.w $9d07,$fffe
+	dc.w $19e,$21f
+	dc.w $9e07,$fffe
+	dc.w $19e,$10f
+	dc.w $9f07,$fffe
+	dc.w $19e,$21f
+	dc.w $a007,$fffe
+	dc.w $19e,$10f
+	dc.w $a107,$fffe
+	dc.w $19e,$21f
+	dc.w $a207,$fffe
+	dc.w $19e,$20f
+	dc.w $a307,$fffe
+	dc.w $19e,$21f
+	dc.w $a407,$fffe
+	dc.w $19e,$10f
+	dc.w $a507,$fffe
+	dc.w $19e,$21f
+	dc.w $a707,$fffe
+	dc.w $19e,$10f
+	dc.w $a807,$fffe
+	dc.w $19e,$21f
+	dc.w $a907,$fffe
+	dc.w $19e,$10f
+	dc.w $aa07,$fffe
+	dc.w $19e,$21f
+	dc.w $ac07,$fffe
+	dc.w $19e,$10f
+	dc.w $ad07,$fffe
+	dc.w $19e,$21f
+	dc.w $ae07,$fffe
+	dc.w $19e,$10f
+	dc.w $af07,$fffe
+	dc.w $19e,$21f
+	dc.w $b107,$fffe
+	dc.w $19e,$10f
+	dc.w $b307,$fffe
+	dc.w $19e,$21f
+	dc.w $b407,$fffe
+	dc.w $19e,$10f
+	dc.w $b507,$fffe
+	dc.w $19e,$21f
+	dc.w $b607,$fffe
+	dc.w $19e,$10f
+	dc.w $b707,$fffe
+	dc.w $19e,$21f
+	dc.w $b807,$fffe
+	dc.w $19e,$10f
+	dc.w $bb07,$fffe
+	dc.w $19e,$21f
+	dc.w $bc07,$fffe
+	dc.w $19e,$10f
+	dc.w $bd07,$fffe
+	dc.w $19e,$21f
+	dc.w $be07,$fffe
+	dc.w $19e,$10f
+	dc.w $c007,$fffe
+	dc.w $19e,$11f
+	dc.w $c107,$fffe
+	dc.w $19e,$10f
+	dc.w $c207,$fffe
+	dc.w $19e,$21f
+	dc.w $c307,$fffe
+	dc.w $19e,$10f
+	dc.w $c507,$fffe
+	dc.w $19e,$21f
+	dc.w $c607,$fffe
+	dc.w $19e,$10f
+	dc.w $cb07,$fffe
+	dc.w $19e,$11f
+	dc.w $cc07,$fffe
+	dc.w $19e,$00f
+	dc.w $cd07,$fffe
+	dc.w $19e,$10f
+	dc.w $d007,$fffe
+	dc.w $19e,$11f
+	dc.w $d107,$fffe
+	dc.w $19e,$10f
+	dc.w $d207,$fffe
+	dc.w $19e,$00f
+	dc.w $d307,$fffe
+	dc.w $19e,$10f
+	dc.w $d807,$fffe
+	dc.w $19e,$00f
+	dc.w $d907,$fffe
+	dc.w $19e,$10f
+	dc.w $dc07,$fffe
+	dc.w $19e,$00f
+	dc.w $dd07,$fffe
+	dc.w $19e,$10f
+	dc.w $de07,$fffe
+	dc.w $19e,$00f
+	dc.w $df07,$fffe
+	dc.w $19e,$10f
+	dc.w $e007,$fffe
+	dc.w $19e,$00f
+	dc.w $e107,$fffe
+	dc.w $19e,$10f
+	dc.w $e207,$fffe
+	dc.w $19e,$00f
+	dc.w $e307,$fffe
+	dc.w $19e,$10f
+	dc.w $e407,$fffe
+	dc.w $19e,$00f
+	dc.w $e607,$fffe
+	dc.w $19e,$10f
+	dc.w $e707,$fffe
+	dc.w $19e,$00f
+	dc.w $e807,$fffe
+	dc.w $19e,$10f
+	dc.w $e907,$fffe
+	dc.w $19e,$00f
+	dc.w $ed07,$fffe
+	dc.w $19e,$10f
+	dc.w $ee07,$fffe
+	dc.w $19e,$00f
+	dc.w $ffdf,$fffe ; PAL fix
+	dc.w $307,$fffe
+	dc.w $19e,$00e
+	dc.w $407,$fffe
+	dc.w $19e,$00f
+	dc.w $807,$fffe
+	dc.w $19e,$00e
+	dc.w $907,$fffe
+	dc.w $19e,$00f
+	dc.w $a07,$fffe
+	dc.w $19e,$00e
+	dc.w $b07,$fffe
+	dc.w $19e,$00f
+	dc.w $c07,$fffe
+	dc.w $19e,$00e
+	dc.w $1007,$fffe
+	dc.w $19e,$00f
+	dc.w $1107,$fffe
+	dc.w $19e,$00e
+	dc.w $1507,$fffe
+	dc.w $19e,$00d
+	dc.w $1607,$fffe
+	dc.w $19e,$00e
+	dc.w $1707,$fffe
+	dc.w $19e,$01e
+	dc.w $1807,$fffe
+	dc.w $19e,$00d
+	dc.w $1907,$fffe
+	dc.w $19e,$00e
+	dc.w $1a07,$fffe
+	dc.w $19e,$00d
+	dc.w $1b07,$fffe
+	dc.w $19e,$01e
+	dc.w $1c07,$fffe
+	dc.w $19e,$00d
+	dc.w $1f07,$fffe
+	dc.w $19e,$01d
+	dc.w $2007,$fffe
+	dc.w $19e,$00d
+	dc.w $2107,$fffe
+	dc.w $19e,$01d
+	dc.w $2207,$fffe
+	dc.w $19e,$00d
+	dc.w $2307,$fffe
+	dc.w $19e,$01d
+	dc.w $2407,$fffe
+	dc.w $19e,$00c
+	dc.w $2507,$fffe
+	dc.w $19e,$01d
+	dc.w $2707,$fffe
+	dc.w $19e,$00c
+	dc.w $2807,$fffe
+	dc.w $19e,$01d
+	dc.w $2907,$fffe
+	dc.w $19e,$00c
+	dc.w $2a07,$fffe
+	dc.w $19e,$01c
+	dc.w $2b07,$fffe
+	dc.w $19e,$01d
+
 	IFNE DYNCOPPER
 	.Waits:
 	DS.W COP_BLIT_SIZE*COP_WAITS+2	; +2 vpos >$FF
 	ENDC
 
 	IFEQ DYNCOPPER
-	DC.W $FFDF,$FFFE		; allow VPOS>$ff
+	;DC.W $FFDF,$FFFE		; allow VPOS>$ff
 	ENDC
 	;DC.W $3709,$FF00		; ## RASTER END ## #$12C?
 	;DC.W $009A,$0010		; CLEAR RASTER BUSY FLAG
