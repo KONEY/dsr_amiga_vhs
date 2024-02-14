@@ -21,11 +21,11 @@ FONT_SCROLL	EQU FONT_W+FONT_PAD
 LINE_H		EQU FONT_H*bypl
 CHARS_PER_LINE	EQU wi/(FONT_W+FONT_PAD)
 ;*******************************
-DYNCOPPER		EQU 0
+DYNCOPPER		EQU 1
 	IFNE DYNCOPPER
 COP_WAITS		EQU 56
-COP_FRAMES	EQU 31
-COP_COLS_REGS	EQU 1
+COP_FRAMES	EQU 50
+COP_COLS_REGS	EQU 4
 COP_BLIT_SIZE	EQU COP_COLS_REGS*2+2
 	ENDC
 ;********** Demo **********	;Demo-specific non-startup code below.
@@ -44,13 +44,13 @@ Demo:			;a4=VBR, a6=Custom Registers Base addr
 	LEA	TXT_GRID,A0	; PF_1 OSD
 	LEA	COPPER\.BplPtrs+2+16,A1
 	BSR.W	PokePtrs
-	LEA	TXT_GRID,A0	; PF_2 NOIZE
+	LEA	PLANE_3,A0	; PF_2 NOIZE
 	LEA	COPPER\.BplPtrs+2+24,A1
 	BSR.W	PokePtrs
 	LEA	TXT_GRID,A0	; PF_1 OSD
 	LEA	COPPER\.BplPtrs+2+32,A1
 	BSR.W	PokePtrs
-	LEA	TXT_GRID,A0	; PF_2 NOIZE
+	LEA	PLANE_5,A0	; PF_2 NOIZE
 	LEA	COPPER\.BplPtrs+2+40,A1
 	BSR.W	PokePtrs
 
@@ -61,6 +61,8 @@ Demo:			;a4=VBR, a6=Custom Registers Base addr
 	LEA	GRADIENT_REGISTERS,A3
 	LEA	GRADIENT_PTRS,A4
 	MOVE.W	#COP_FRAMES-1,D4
+	LEA	BLUE_COLS,A6
+	MOVE.W	-2(A6),D5		; IDX
 	.loop2:
 	MOVE.L	A1,(A4)+
 	BSR.W	__DECRUNCH_COPPERLIST
@@ -98,9 +100,7 @@ Demo:			;a4=VBR, a6=Custom Registers Base addr
 	BSR.W	__FILLRND		; SOME DUMMY OPERATION...
 	LEA	PLANE_5,A4	; FILLS A PLANE
 	BSR.W	__PXLX2_PLANE	; SOME DUMMY OPERATION...
-	;BSR.W	__PXLX2_PLANE	; SOME DUMMY OPERATION...
-	;LEA	PLANE_6,A4	; FILLS A PLANE
-	;BSR.W	__PXLX2_PLANE	; SOME DUMMY OPERATION...
+	BSR.W	__PXLX2_PLANE	; SOME DUMMY OPERATION...
 	LEA	DUMMY_1,A4	; FILLS A PLANE
 	BSR.W	__FILLRND		; SOME DUMMY OPERATION...
 	;BSR.W	__FILLRND		; SOME DUMMY OPERATION...
@@ -206,13 +206,13 @@ MainLoop:
 	MOVE.B	#1,FRAME_STROBE
 		
 	; ## BG COLORS SHUFFLE ##
-	LEA	COPPER\.PaletteBG+2,A1
+	;LEA	COPPER\.PaletteBG+2,A1
 	;MOVE.W	(A6,D0.W),(A1)
 	;ADD.W	#$2,D0
-	MOVE.W	(A6,D0.W),4(A1)
-	ADD.W	#$2,D0
-	AND.W	#$3F,D0
-	MOVE.W	D0,-2(A6)			; IDX
+	;MOVE.W	(A6,D0.W),4(A1)
+	;ADD.W	#$2,D0
+	;AND.W	#$3F,D0
+	;MOVE.W	D0,-2(A6)			; IDX
 	; ## BG COLORS SHUFFLE ##
 	;MOVE.L	#$000F030A,$DFF182		; BLUE
 	MOVE.L	#$0F0000FF,$DFF182		; TIKTOK
@@ -237,13 +237,13 @@ MainLoop:
 	.oddFrame:
 	MOVE.B	#0,FRAME_STROBE
 	; ## BG COLORS SHUFFLE ##
-	LEA	COPPER\.PaletteBG+6,A1
-	MOVE.W	(A6,D0.W),(A1)
-	ADD.W	#$2,D0
-	MOVE.W	(A6,D0.W),4(A1)
-	ADD.W	#$2,D0
-	AND.W	#$BF,D0
-	MOVE.W	D0,-2(A6)			; IDX
+	;LEA	COPPER\.PaletteBG+6,A1
+	;MOVE.W	(A6,D0.W),(A1)
+	;ADD.W	#$2,D0
+	;MOVE.W	(A6,D0.W),4(A1)
+	;ADD.W	#$2,D0
+	;AND.W	#$BF,D0
+	;MOVE.W	D0,-2(A6)			; IDX
 	; ## BG COLORS SHUFFLE ##
 	;MOVE.L	#$010A000E,$DFF182		; BLUE
 	MOVE.L	#$0F0700F5,$DFF182		; G+P
@@ -270,10 +270,11 @@ MainLoop:
 	MOVEM.L	NOISE_COP_PTR3(PC),A0-A1
 	EXG	A0,A1
 	MOVEM.L	A0-A1,NOISE_COP_PTR3
-	; ## UPDATE POINTERS ##
+	; ## SWAP FOR NEXT ####
 	MOVEM.L	RELOC3(PC),A0-A1
 	EXG	A0,A1
 	MOVEM.L	A0-A1,RELOC3
+	; ## UPDATE POINTERS ##
 	.evenFrame:
 
 	BSR.W	__RACE_BEAM
@@ -323,19 +324,6 @@ VBint:				; Blank template VERTB interrupt
 	MOVEM.L	(SP)+,D0/A6	; RESTORE
 	RTE
 
-__UPDT_BPL_PTR:
-	ADD.W	(A2),A0
-	ADD.W	D1,(A2)
-	BTST	#$0,(A0)
-	BNE.S	.dontShuffle
-	SUB.W	D2,(A2)
-	.dontShuffle:
-	CMP.W	#bypl*he,(A2)
-	BLO.S	.dontReset
-	MOVE.W	#$0,(A2)
-	.dontReset:
-	RTS
-
 _WipeMEM:		; a1=screen destination address to clear
 	BSR	WaitBlitter
 	MOVE.L	#$0,BLTAFWM		; BLTAFWM
@@ -348,8 +336,9 @@ _WipeMEM:		; a1=screen destination address to clear
 
 	IFNE DYNCOPPER
 __DECRUNCH_COPPERLIST:
+	MOVE.W	#$0,D5
 	MOVE.W	#COP_WAITS,D7
-	.loop:
+	.waitsLoop:
 	TST.W	(A0)		; ZEROED WORD = allow VPOS>$ff
 	BNE.S	.notFF
 	MOVE.L	#$FFDFFFFE,(A1)+	; allow VPOS>$ff
@@ -361,26 +350,36 @@ __DECRUNCH_COPPERLIST:
 	MOVE.B	#$07,D0		; CMD RESTORED $1C07
 	MOVE.W	D0,(A1)+		; WAIT
 	MOVE.W	#$FFFE,(A1)+	; WAIT
-	CLR.L	D1
-	MOVE.B	#$0F,D1
-	ROR.L	#4,D1
+	;CLR.L	D1
 	;MOVE.B	(A0),D1		; BYTE FOR COLOR
 	;LSL.W	#4,D1		; EXTEND FIRST NIBBLE
-	MOVE.B	(A0)+,D1		; FOR RED VALUE
-	ROL.L	#4,D1
-	AND.W	#$08EF,D1
-
+	MOVE.B	(A0)+,D1		; DUMMY
 	MOVE.W	#COP_COLS_REGS-1,D6
-	.innerLoop:
+	.registersLoop:
 	LSL.W	D6		; ONLY EVEN VALUES
 	MOVE.W	(A3,D6.W),(A1)+	; COLOR REGISTER
+	MOVE.W	(A6,D5.W),(A1)+	; COLOR VALUE
+	ADD.W	#$2,D5		; GLOBAL COLOR IDX
 	LSR.W	D6		; GO BACK TO COUNTER
-	MOVE.W	D1,(A1)+		; COLOR VALUE
-	ROR.W	D1
-	DBRA	D6,.innerLoop
+	DBRA	D6,.registersLoop
+	;SUB.W	#(COP_COLS_REGS-1)*2,D5
+	;ADD.W	#$2,D5		; GLOBAL COLOR IDX
+	AND.W	#$3F,D5		; RESET
+	MOVE.W	D5,-2(A6)		; SAVE
 	.skip:
-	DBRA	D7,.loop
+	DBRA	D7,.waitsLoop
 	RTS
+
+	; ## BG COLORS SHUFFLE ##
+	;LEA	COPPER\.PaletteBG+2,A1
+	;MOVE.W	(A6,D0.W),(A1)
+	;ADD.W	#$2,D0
+	;MOVE.W	(A6,D0.W),4(A1)
+	;ADD.W	#$2,D0
+	;AND.W	#$3F,D0
+	;MOVE.W	D0,-2(A6)			; IDX
+	; ## BG COLORS SHUFFLE ##
+
 	ENDC
 	IFNE DYNCOPPER
 __BLIT_GRADIENT_IN_COPPER:
@@ -505,7 +504,7 @@ __FILLSOLID:
 	MOVE.W	#he-1,D4		; QUANTE LINEE
 	.outerloop:		; NUOVA RIGA
 	MOVE.L	#-1,D0		; ALL BITS
-	;BSR.W	__RND\._byte
+	BSR.W	__RND\._byte
 	AND.W	#$F000,D5
 	CMP.W	#$A000,D5
 	BNE.S	.noNoiseLine
@@ -536,6 +535,19 @@ __FILLRND:
 	MOVE.B	$DFF007,D5	;$dff00a $dff00b for mouse pos
 	MOVE.B	$BFD800,D3
 	EOR.B	D3,D5
+	RTS
+
+__UPDT_BPL_PTR:
+	ADD.W	(A2),A0
+	ADD.W	D1,(A2)
+	BTST	#$0,(A0)
+	BNE.S	.dontShuffle
+	SUB.W	D2,(A2)
+	.dontShuffle:
+	CMP.W	#bypl*he,(A2)
+	BLO.S	.dontReset
+	MOVE.W	#$0,(A2)
+	.dontReset:
 	RTS
 
 __RACE_BEAM:
@@ -574,7 +586,10 @@ __RACE_BEAM:
 
 	CMP.W	D6,D2		; 12.032 - #$2F00
 	BNE.S	.noLine
-	MOVE.W	#$0FFF,$DFF19E	; WHITE LINE
+	MOVE.W	#$0123,$DFF19E	; WHITE LINE
+	MOVE.W	#$0012,$DFF192
+	MOVE.W	#$0345,$DFF196
+	MOVE.W	#$0234,$DFF19A
 	BRA.S	.noLine2
 	.noLine:
 
@@ -788,25 +803,28 @@ V_IDX_2:		DC.W $32
 V_OFFSET:		DC.W 0,40,40,80,80,40,40,0,0,-40,-80,-80,-40,-40,0,0
 		DC.W 0,0,40,40,80,80,40,0,-40,-40,-80,-80,-40,-40,-40,0
 BLUE_COLS_IDX:	DC.W $0
-BLUE_COLS:	DC.W $040F,$010F,$030F,$002E,$010E,$022E,$020E
-		DC.W $0129,$000D,$030D,$031D,$032D,$0219,$020C,$040C,$030C
-		DC.W $0028,$000B,$020B,$050B,$021B,$010A,$030A,$042A,$040A
-		DC.W $000C,$011C,$032C,$010C,$000E,$040E,$021E,$050E
-GREY_COLS_IDX:	DC.W $0
-GREY_COLS:	DC.W $011E,$000D,$011F,$000D,$001B,$000F,$000E,$000B
+BLUE_COLS:	DC.W $000F,$010F,$030F,$010E,$022E,$020E,$030C,$002E
+		DC.W $0129,$000D,$030D,$032D,$0219,$020C,$040C,$031D
+		DC.W $0028,$000B,$020B,$021B,$010A,$030A,$042A,$050B
+		DC.W $000C,$011C,$032C,$000E,$040E,$021E,$050E,$010C
+;GREY_COLS_IDX:	DC.W $0
+GREY_COLS:	DC.W $011E,$022D,$011F,$033D,$002B,$003F,$004E,$016B
+		DC.W $031E,$021D,$000F,$011D;,$003C,$002E,$011E,$011B
 		DC.W $0009,$0128,$0019,$0219,$0029,$0138,$0030,$0035
-		DC.W $001D,$000C,$030D,$002C,$000D,$001A,$000C,$010B
+		DC.W $0666,$0566,$0455,$0558,$0555,$0566,$0667,$0566
+		DC.W $028D,$00AC,$005D,$042C,$006D,$051A,$040C,$042B
+		DC.W $020B,$021F,$010A,$030E
 		DC.W $030C,$0409,$0119,$031A,$0118,$000F,$011C,$011A
+
+		DC.W $0666,$0566,$0455,$0558,$0555,$0566,$0667,$0566
+		DC.W $0578,$0677,$0678,$0678,$0667,$067A,$0678,$0789
+		DC.W $0678,$0679,$0789,$0678,$0689,$0678,$0789,$0788
+		DC.W $089A,$0689,$079A,$088A,$089B,$08AB,$06AC,$069A
 
 		DC.W $031E,$021D,$000F,$011D,$003C,$002E,$011E,$011B
 		DC.W $0229,$0236,$0139,$0339,$0249,$0358,$0152,$0056
 		DC.W $003D,$012C,$040D,$004C,$002D,$013A,$002C,$031B
 		DC.W $041C,$0519,$0338,$043A,$0337,$033E,$033C,$033A
-
-		DC.W $0666,$0566,$0455,$0558,$0555,$0566,$0667,$0566
-		DC.W $0578,$0677,$0678,$0778,$0667,$077A,$0778,$0789
-		DC.W $0678,$0779,$0889,$0778,$0789,$0778,$0889,$0788
-		DC.W $089A,$0789,$079A,$088A,$089B,$08AB,$09AC,$099A
 
 	IFNE DYNCOPPER
 GRADIENT_REGISTERS:	DC.W $019E,$0192,$0196,$019A
@@ -949,368 +967,13 @@ COPPER:	; #### COPPERLIST ####################################################
 	DC.W $100,bpls*$1000+$600	;enable bitplanes
 	;DC.W $104,%0000000001000000	; BPLCON2
 
-	; https://gradient-blaster.grahambates.com/?points=10f@0,10d@52,21f@123,00f@207,01c@255&steps=256&blendMode=perceptual&ditherMode=blueNoiseMono&target=amigaOcs&ditherAmount=100
-	Gradient:
-	dc.w $19e,$00f
-	dc.w $2d07,$fffe
-	dc.w $19e,$10f
-	dc.w $2e07,$fffe
-	dc.w $19e,$00f
-	dc.w $2f07,$fffe
-	dc.w $19e,$10f
-	dc.w $3107,$fffe
-	dc.w $19e,$00f
-	dc.w $3307,$fffe
-	dc.w $19e,$10f
-	dc.w $3607,$fffe
-	dc.w $19e,$00f
-	dc.w $3707,$fffe
-	dc.w $19e,$10f
-	dc.w $3807,$fffe
-	dc.w $19e,$00f
-	dc.w $3907,$fffe
-	dc.w $19e,$10f
-	dc.w $3a07,$fffe
-	dc.w $19e,$00e
-	dc.w $3b07,$fffe
-	dc.w $19e,$10f
-	dc.w $3c07,$fffe
-	dc.w $19e,$00f
-	dc.w $3d07,$fffe
-	dc.w $19e,$10f
-	dc.w $3e07,$fffe
-	dc.w $19e,$00e
-	dc.w $3f07,$fffe
-	dc.w $19e,$10f
-	dc.w $4107,$fffe
-	dc.w $19e,$00e
-	dc.w $4207,$fffe
-	dc.w $19e,$10f
-	dc.w $4307,$fffe
-	dc.w $19e,$00e
-	dc.w $4407,$fffe
-	dc.w $19e,$10e
-	dc.w $4507,$fffe
-	dc.w $19e,$10f
-	dc.w $4607,$fffe
-	dc.w $19e,$00e
-	dc.w $4707,$fffe
-	dc.w $19e,$10f
-	dc.w $4807,$fffe
-	dc.w $19e,$00e
-	dc.w $4907,$fffe
-	dc.w $19e,$10f
-	dc.w $4a07,$fffe
-	dc.w $19e,$00e
-	dc.w $4b07,$fffe
-	dc.w $19e,$10f
-	dc.w $4c07,$fffe
-	dc.w $19e,$00e
-	dc.w $4d07,$fffe
-	dc.w $19e,$10e
-	dc.w $4f07,$fffe
-	dc.w $19e,$00e
-	dc.w $5007,$fffe
-	dc.w $19e,$10f
-	dc.w $5107,$fffe
-	dc.w $19e,$10e
-	dc.w $5207,$fffe
-	dc.w $19e,$00e
-	dc.w $5307,$fffe
-	dc.w $19e,$10e
-	dc.w $5507,$fffe
-	dc.w $19e,$00e
-	dc.w $5607,$fffe
-	dc.w $19e,$10e
-	dc.w $5807,$fffe
-	dc.w $19e,$00d
-	dc.w $5907,$fffe
-	dc.w $19e,$10e
-	dc.w $5a07,$fffe
-	dc.w $19e,$00e
-	dc.w $5b07,$fffe
-	dc.w $19e,$10e
-	dc.w $5c07,$fffe
-	dc.w $19e,$00d
-	dc.w $5d07,$fffe
-	dc.w $19e,$10e
-	dc.w $5e07,$fffe
-	dc.w $19e,$00d
-	dc.w $5f07,$fffe
-	dc.w $19e,$10e
-	dc.w $6007,$fffe
-	dc.w $19e,$00d
-	dc.w $6107,$fffe
-	dc.w $19e,$10e
-	dc.w $6207,$fffe
-	dc.w $19e,$10d
-	dc.w $6307,$fffe
-	dc.w $19e,$10e
-	dc.w $6407,$fffe
-	dc.w $19e,$00d
-	dc.w $6507,$fffe
-	dc.w $19e,$10e
-	dc.w $6707,$fffe
-	dc.w $19e,$00d
-	dc.w $6807,$fffe
-	dc.w $19e,$10e
-	dc.w $6907,$fffe
-	dc.w $19e,$00d
-	dc.w $6a07,$fffe
-	dc.w $19e,$10e
-	dc.w $6e07,$fffe
-	dc.w $19e,$00d
-	dc.w $6f07,$fffe
-	dc.w $19e,$10e
-	dc.w $7207,$fffe
-	dc.w $19e,$00d
-	dc.w $7307,$fffe
-	dc.w $19e,$10e
-	dc.w $7707,$fffe
-	dc.w $19e,$20f
-	dc.w $7807,$fffe
-	dc.w $19e,$10e
-	dc.w $7d07,$fffe
-	dc.w $19e,$20f
-	dc.w $7e07,$fffe
-	dc.w $19e,$10e
-	dc.w $8007,$fffe
-	dc.w $19e,$10f
-	dc.w $8107,$fffe
-	dc.w $19e,$10e
-	dc.w $8207,$fffe
-	dc.w $19e,$10f
-	dc.w $8307,$fffe
-	dc.w $19e,$10e
-	dc.w $8507,$fffe
-	dc.w $19e,$21f
-	dc.w $8607,$fffe
-	dc.w $19e,$10e
-	dc.w $8707,$fffe
-	dc.w $19e,$10f
-	dc.w $8807,$fffe
-	dc.w $19e,$10e
-	dc.w $8907,$fffe
-	dc.w $19e,$20f
-	dc.w $8a07,$fffe
-	dc.w $19e,$10e
-	dc.w $8b07,$fffe
-	dc.w $19e,$21f
-	dc.w $8c07,$fffe
-	dc.w $19e,$10e
-	dc.w $8d07,$fffe
-	dc.w $19e,$10f
-	dc.w $8e07,$fffe
-	dc.w $19e,$20f
-	dc.w $8f07,$fffe
-	dc.w $19e,$10e
-	dc.w $9007,$fffe
-	dc.w $19e,$21f
-	dc.w $9107,$fffe
-	dc.w $19e,$10f
-	dc.w $9207,$fffe
-	dc.w $19e,$10e
-	dc.w $9307,$fffe
-	dc.w $19e,$21f
-	dc.w $9407,$fffe
-	dc.w $19e,$20f
-	dc.w $9507,$fffe
-	dc.w $19e,$10f
-	dc.w $9707,$fffe
-	dc.w $19e,$21f
-	dc.w $9807,$fffe
-	dc.w $19e,$10f
-	dc.w $9907,$fffe
-	dc.w $19e,$21f
-	dc.w $9a07,$fffe
-	dc.w $19e,$10f
-	dc.w $9b07,$fffe
-	dc.w $19e,$21f
-	dc.w $9c07,$fffe
-	dc.w $19e,$10f
-	dc.w $9d07,$fffe
-	dc.w $19e,$21f
-	dc.w $9e07,$fffe
-	dc.w $19e,$10f
-	dc.w $9f07,$fffe
-	dc.w $19e,$21f
-	dc.w $a007,$fffe
-	dc.w $19e,$10f
-	dc.w $a107,$fffe
-	dc.w $19e,$21f
-	dc.w $a207,$fffe
-	dc.w $19e,$20f
-	dc.w $a307,$fffe
-	dc.w $19e,$21f
-	dc.w $a407,$fffe
-	dc.w $19e,$10f
-	dc.w $a507,$fffe
-	dc.w $19e,$21f
-	dc.w $a707,$fffe
-	dc.w $19e,$10f
-	dc.w $a807,$fffe
-	dc.w $19e,$21f
-	dc.w $a907,$fffe
-	dc.w $19e,$10f
-	dc.w $aa07,$fffe
-	dc.w $19e,$21f
-	dc.w $ac07,$fffe
-	dc.w $19e,$10f
-	dc.w $ad07,$fffe
-	dc.w $19e,$21f
-	dc.w $ae07,$fffe
-	dc.w $19e,$10f
-	dc.w $af07,$fffe
-	dc.w $19e,$21f
-	dc.w $b107,$fffe
-	dc.w $19e,$10f
-	dc.w $b307,$fffe
-	dc.w $19e,$21f
-	dc.w $b407,$fffe
-	dc.w $19e,$10f
-	dc.w $b507,$fffe
-	dc.w $19e,$21f
-	dc.w $b607,$fffe
-	dc.w $19e,$10f
-	dc.w $b707,$fffe
-	dc.w $19e,$21f
-	dc.w $b807,$fffe
-	dc.w $19e,$10f
-	dc.w $bb07,$fffe
-	dc.w $19e,$21f
-	dc.w $bc07,$fffe
-	dc.w $19e,$10f
-	dc.w $bd07,$fffe
-	dc.w $19e,$21f
-	dc.w $be07,$fffe
-	dc.w $19e,$10f
-	dc.w $c007,$fffe
-	dc.w $19e,$11f
-	dc.w $c107,$fffe
-	dc.w $19e,$10f
-	dc.w $c207,$fffe
-	dc.w $19e,$21f
-	dc.w $c307,$fffe
-	dc.w $19e,$10f
-	dc.w $c507,$fffe
-	dc.w $19e,$21f
-	dc.w $c607,$fffe
-	dc.w $19e,$10f
-	dc.w $cb07,$fffe
-	dc.w $19e,$11f
-	dc.w $cc07,$fffe
-	dc.w $19e,$00f
-	dc.w $cd07,$fffe
-	dc.w $19e,$10f
-	dc.w $d007,$fffe
-	dc.w $19e,$11f
-	dc.w $d107,$fffe
-	dc.w $19e,$10f
-	dc.w $d207,$fffe
-	dc.w $19e,$00f
-	dc.w $d307,$fffe
-	dc.w $19e,$10f
-	dc.w $d807,$fffe
-	dc.w $19e,$00f
-	dc.w $d907,$fffe
-	dc.w $19e,$10f
-	dc.w $dc07,$fffe
-	dc.w $19e,$00f
-	dc.w $dd07,$fffe
-	dc.w $19e,$10f
-	dc.w $de07,$fffe
-	dc.w $19e,$00f
-	dc.w $df07,$fffe
-	dc.w $19e,$10f
-	dc.w $e007,$fffe
-	dc.w $19e,$00f
-	dc.w $e107,$fffe
-	dc.w $19e,$10f
-	dc.w $e207,$fffe
-	dc.w $19e,$00f
-	dc.w $e307,$fffe
-	dc.w $19e,$10f
-	dc.w $e407,$fffe
-	dc.w $19e,$00f
-	dc.w $e607,$fffe
-	dc.w $19e,$10f
-	dc.w $e707,$fffe
-	dc.w $19e,$00f
-	dc.w $e807,$fffe
-	dc.w $19e,$10f
-	dc.w $e907,$fffe
-	dc.w $19e,$00f
-	dc.w $ed07,$fffe
-	dc.w $19e,$10f
-	dc.w $ee07,$fffe
-	dc.w $19e,$00f
-	dc.w $ffdf,$fffe ; PAL fix
-	dc.w $307,$fffe
-	dc.w $19e,$00e
-	dc.w $407,$fffe
-	dc.w $19e,$00f
-	dc.w $807,$fffe
-	dc.w $19e,$00e
-	dc.w $907,$fffe
-	dc.w $19e,$00f
-	dc.w $a07,$fffe
-	dc.w $19e,$00e
-	dc.w $b07,$fffe
-	dc.w $19e,$00f
-	dc.w $c07,$fffe
-	dc.w $19e,$00e
-	dc.w $1007,$fffe
-	dc.w $19e,$00f
-	dc.w $1107,$fffe
-	dc.w $19e,$00e
-	dc.w $1507,$fffe
-	dc.w $19e,$00d
-	dc.w $1607,$fffe
-	dc.w $19e,$00e
-	dc.w $1707,$fffe
-	dc.w $19e,$01e
-	dc.w $1807,$fffe
-	dc.w $19e,$00d
-	dc.w $1907,$fffe
-	dc.w $19e,$00e
-	dc.w $1a07,$fffe
-	dc.w $19e,$00d
-	dc.w $1b07,$fffe
-	dc.w $19e,$01e
-	dc.w $1c07,$fffe
-	dc.w $19e,$00d
-	dc.w $1f07,$fffe
-	dc.w $19e,$01d
-	dc.w $2007,$fffe
-	dc.w $19e,$00d
-	dc.w $2107,$fffe
-	dc.w $19e,$01d
-	dc.w $2207,$fffe
-	dc.w $19e,$00d
-	dc.w $2307,$fffe
-	dc.w $19e,$01d
-	dc.w $2407,$fffe
-	dc.w $19e,$00c
-	dc.w $2507,$fffe
-	dc.w $19e,$01d
-	dc.w $2707,$fffe
-	dc.w $19e,$00c
-	dc.w $2807,$fffe
-	dc.w $19e,$01d
-	dc.w $2907,$fffe
-	dc.w $19e,$00c
-	dc.w $2a07,$fffe
-	dc.w $19e,$01c
-	dc.w $2b07,$fffe
-	dc.w $19e,$01d
-
 	IFNE DYNCOPPER
 	.Waits:
 	DS.W COP_BLIT_SIZE*COP_WAITS+2	; +2 vpos >$FF
 	ENDC
 
 	IFEQ DYNCOPPER
-	;DC.W $FFDF,$FFFE		; allow VPOS>$ff
+	DC.W $FFDF,$FFFE		; allow VPOS>$ff
 	ENDC
 	;DC.W $3709,$FF00		; ## RASTER END ## #$12C?
 	;DC.W $009A,$0010		; CLEAR RASTER BUSY FLAG
