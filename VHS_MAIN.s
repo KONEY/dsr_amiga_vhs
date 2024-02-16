@@ -641,14 +641,14 @@ __RACE_BEAM:
 	BNE.W	.skip
 	MOVE.L	#$09990777,$DFF182	; G+P
 	MOVE.L	#$011B0666,$DFF186	; G+P
-	;;MOVE.B	D0,DDFSTRT
-	;;MOVE.W	D5,BPL2MOD
+	MOVE.B	D0,DDFSTRT
+	MOVE.W	D5,BPL2MOD
 	;MOVE.B	D5,DDFSTOP
 	;MOVE.W	D5,BPL1MOD
 	;LEA	LFO_NOSYNC,A0
-	;MOVE.W	#$C000+$600,BPLCON0	; HIRES?
-	MOVE.W	#(bpls-1)*$1000+$A00,BPLCON0	; HAM!?!
-	MOVE.L	#$0F1F010E,$DFF182		; HAM + EHB
+	;MOVE.W	#$C000+$600,BPLCON0		; HIRES?
+	;MOVE.W	#(bpls-1)*$1000+$A00,BPLCON0	; HAM!?!
+	;MOVE.L	#$0F1F010E,$DFF182		; HAM + EHB
 	;MOVE.W	#bpls*$1000+$200,BPLCON0	; EHB!?!
 	;MOVE.L	#$00E00F0F,$DFF186		; EHB
 	;MOVE.L	#$0F0F0A1A,$DFF18A		; EHB
@@ -677,7 +677,7 @@ __RACE_BEAM:
 	;
 	;.dontSkip:
 	;CMP.W	#$0400,D2		; 12.032 - #$2F00
-	CMP.W	#$2F00,D2		; 12.032
+	CMP.W	#$1F00,D2		; 12.032
 	BEQ.W	.waitNextRaster
 	;MOVE.W	#0,BPLCON1	; RESET REGISTER
 	;MOVE.L	#0,BPL1MOD	; RESET
@@ -821,7 +821,7 @@ LFO_SINE1:	DC.W 0,1,1,2,2,2,3,4,4,5,5,6,6,7,6,7,6,7,7,6,6,5,5,4,4,3,2,2,2,1,1,0
 LFO_SINE2:	DC.W 5,5,4,5,5,4,5,4,5,5,4,4,3,2,3,2,1,0,0,0,1,0,1,2,2,3,4,4,5,4,5,4
 LFO_NOISE:	DC.W 1,4,1,5,2,4,3,5,2,4,2,5,2,4,1,5,1,4,1,5,3,4,2,5,1,4,5,5,4,4,6,5
 LFO_VIBRO:	DC.W 4,5,4,5,4,5,4,5,4,5,2,1,2,1,2,1,0,1,0,1,0,1,0,1,0,1,0,1,0,1,0,2
-LFO_NOSYNC:	DC.W 0,0,0,0,14,13,12,10,8,6,5,4,3,2,1,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0
+LFO_NOSYNC:	DC.W 0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,1,2,3,4,3,4,7,10,13,15
 V_IDX_1:		DC.W $2
 V_IDX_2:		DC.W $32
 V_OFFSET:		DC.W 0,40,40,80,80,40,40,0,0,-40,-80,-80,-40,-40,0,0
@@ -977,7 +977,7 @@ _MED_MODULE:
 COPPER:	; #### COPPERLIST ####################################################
 	DC.W $1FC,0	; Slow fetch mode, remove if AGA demo.
 	DC.W $8E,$2C81	; 238h display window top, left | DIWSTRT - 11.393
-	DC.W $90,$2CC1	; and bottom, right.	| DIWSTOP - 11.457
+	DC.W $90,$1CC1	; and bottom, right.	| DIWSTOP - 11.457
 	DC.W $92,$38	; Standard bitplane dma fetch start
 	DC.W $94,$D0	; and stop for standard screen.
 	DC.W $106,$0C00	; (AGA compat. if any Dual Playf. mode)
