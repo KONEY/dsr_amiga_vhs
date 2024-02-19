@@ -904,7 +904,6 @@ _IntHandler:	;MOVE.W	#$0F0,$DFF180		; show rastertime left down to $12c
 	; ---------------- get the pointer of data's of this sample in Song-struct
 		MOVE.W	D3,D0
 		ASL.W	#3,D3
-		CLR.W	$100			; DEBUG | w 0 100 2
 		LEA	0(A4,D3.W),A0		;A0 contains now ADDress of it
 		MOVE.L	A0,trk_previnstra(A5)
 	; ---------------- get volume
