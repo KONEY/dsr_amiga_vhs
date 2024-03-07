@@ -2,10 +2,12 @@
 ;*** MiniStartup by Photon ***
 	INCDIR	"NAS:AMIGA/CODE/VHS_FX/"
 	SECTION	"Code",CODE
-	INCLUDE	"PhotonsMiniWrapper1.04!.s"
 	INCLUDE	"custom-registers.i"
 	INCLUDE	"med/med_feature_control.i"	; MED CFGs
+	INCLUDE	"PhotonsMiniWrapper1.04!.S"
+	IFNE MED_PLAY_ENABLE
 	INCLUDE	"med/MED_PlayRoutine.i"
+	ENDC
 ;********** Constants **********
 wi		EQU 320
 he		EQU 256		; screen height
@@ -22,7 +24,7 @@ LINE_H		EQU FONT_H*bypl
 CHARS_PER_LINE	EQU wi/(FONT_W+FONT_PAD)
 ;*******************************
 EPILEPSY		EQU 1
-DYNCOPPER		EQU 0
+DYNCOPPER		EQU 1
 	IFNE DYNCOPPER
 COP_WAITS		EQU 42
 COP_FRAMES	EQU 42
@@ -33,8 +35,10 @@ COP_BLIT_SIZE	EQU COP_COLS_REGS*2+2
 Demo:			;a4=VBR, a6=Custom Registers Base addr
 	;*--- init ---*
 	MOVE.L	#VBint,$6C(A4)
-	MOVE.W	#%1110000000100000,INTENA
-	MOVE.W	#%1000001111100000,DMACON
+	;MOVE.W	#$C020,INTENA
+	MOVE.W	#$87C0,DMACON
+	MOVE.W	#%1000000000001100,INTENA	; Master and lev6	; NO COPPER-IRQ!
+	;MOVE.W	#%1000011111100000,DMACON
 	;*--- start copper ---*
 	LEA	TXT_GRID,A0	; PF_1 OSD
 	LEA	COPPER\.BplPtrs+2,A1
@@ -74,9 +78,12 @@ Demo:			;a4=VBR, a6=Custom Registers Base addr
 	BSR.W	__PREFILLS
 	; #### CPU INTENSIVE TASKS BEFORE STARTING MUSIC
 	LEA	BLUE_COLS,A6
+	IFNE MED_PLAY_ENABLE
 	; in photon's wrapper comment:;move.w d2,$9a(a6) ;INTENA
-	;MOVE.W	#27,MED_START_POS	; skip to pos# after first block
+	;MOVE.W	#2,MED_START_POS	 ; skip to pos# after first block
 	JSR	_startmusic
+	ENDC
+	;MOVE.L	#Copper\.Palette,COP2LC
 	MOVE.L	#COPPER,COP1LC	; ## POINT COPPERLIST ##
 ;********************  main loop  ********************
 MainLoop:
@@ -184,10 +191,12 @@ MainLoop:
 	BNE.W	MainLoop		; then loop
 	;*--- exit ---*
 	.exit:
-	; ---  quit MED code  ---
+	IFNE MED_PLAY_ENABLE
+	; --- quit MED code ---
 	MOVEM.L	D0-A6,-(SP)
 	JSR	_endmusic
 	MOVEM.L	(SP)+,D0-A6
+	ENDC
 	RTS
 
 ;********** Demo Routines **********
@@ -199,16 +208,14 @@ PokePtrs:				; EVEN SHRUNKER REFACTOR! :)
 	RTS
 
 VBint:				; Blank template VERTB interrupt
-	MOVEM.L	D0/A6,-(SP)	; SAVE USED REGISTERS
-	LEA	$DFF000,A6
-	BTST	#5,$1F(A6)	; CHECK IF IT'S OUR VERTB INT.
-	BEQ.S	.notVB
-	;*--- DO STUFF HERE ---*
-	MOVEQ	#$20,D0		; POLL IRQ BIT
-	MOVE.W	D0,$9C(A6)
-	MOVE.W	D0,$9C(A6)
-	.notVB:	
-	MOVEM.L	(SP)+,D0/A6	; RESTORE
+	BTST	#5,INTREQR+1	; check if it's our vertb int.
+	BEQ.S	.notVB		; KONEY REFACTOR
+	MOVE.W	D0,-(SP)		; SAVE USED REGISTERS
+	MOVE.W	#$20,D0		; BSET 5,D0 but quicker :)
+	MOVE.W	D0,INTREQ		; poll irq bit
+	MOVE.W	D0,INTREQ		; KONEY REFACTOR
+	MOVE.W	(SP)+,D0		; RESTORE
+	.notVB:
 	RTE
 
 _WipeMEM:		; a1=screen destination address to clear
@@ -1115,7 +1122,7 @@ COPPER:	; #### COPPERLIST ####################################################
 
 	IFEQ DYNCOPPER
 	.PaletteBG:
-	;DC.W $019E,$000F,$0192,$000A,$0196,$000C,$019A,$000D
+	DC.W $019E,$000F,$0192,$000A,$0196,$000C,$019A,$000D
 	ENDC
 
 	.PaletteHLine:

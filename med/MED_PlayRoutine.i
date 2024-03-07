@@ -383,7 +383,7 @@ _PlayNote:	;D7(w) = trk #, D1 = note #, D3(w) = instr # A3 = ADDr of instr
 		.gid_notnormal:
 		CMP.W	#7,D0
 		BLT.S	.gid_not_ext
-		SUBa.W	#48,A1
+		SUBA.W	#48,A1
 		BRA.S	.gid_cont_ext
 		.gid_not_ext:
 		MOVE.L	D7,-(SP)
@@ -2595,7 +2595,7 @@ _AudioInit:
 	;+=+=+=+=+=+=+=+=+=+=+=+=+=+=+=+=+=+=+ attach interrupt
 		.got_timer:
 		LEA	craddr+8-DB(A4),A6
-		MOVE.L	.cia_ADDr(PC,D3.W),D0
+		MOVE.L	.cia_addr(PC,D3.W),D0
 		MOVE.L	D0,(A6)
 		SUB.W	#$100,D0
 		MOVE.L	D0,-(A6)
@@ -2624,8 +2624,8 @@ _AudioInit:
 		.initerr:
 		MOVE.L	D2,D0
 		BRA.S	.initret
-		.cia_ADDr:
-		DC.L $BFE501,$BFE701,$BFD500,$BFD700
+		.cia_addr:
+		DC.L	$BFE501,$BFE701,$BFD500,$BFD700
 
 _AudioRem:
 		MOVEM.L	A5-A6,-(SP)
@@ -2682,10 +2682,10 @@ _module:		DC.L 0
 DMAonmsk:		DC.W 0 ;\_May not be
 	IFNE CIAB
 _ciaresource:	DC.L 0
+	ENDC
 craddr:		DC.L 0
 		DC.L 0		;tloADDr
 		DC.L 0		;thiADDr
-	ENDC
 
 timerinterrupt:	DC.W 0,0,0,0,0
 		DC.L timerintname,DB
@@ -2715,8 +2715,8 @@ audiodevname:	DC.B 'audio.device',0
 	ENDC
 	IFNE CIAB
 cianame:		DC.B 'ciax.resource',0
-_timeropen:	DC.B 0
 	ENDC
+_timeropen:	DC.B 0
 timerintname:	DC.B 'OMEDTimerInterrupt',0
 		EVEN
 ; TRACK-data structures (see definitions at the end of this file)
