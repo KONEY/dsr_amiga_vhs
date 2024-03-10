@@ -26,17 +26,17 @@ CHARS_PER_LINE	EQU wi/(FONT_W+FONT_PAD)
 EPILEPSY		EQU 1
 DYNCOPPER		EQU 1
 	IFNE DYNCOPPER
-COP_WAITS		EQU 42
-COP_FRAMES	EQU 42
-COP_COLS_REGS	EQU 4
-COP_BLIT_SIZE	EQU COP_COLS_REGS*2+2
+COP_WAITS		EQU 240
+COP_FRAMES	EQU 32
+;COP_BLIT_SIZE	EQU 2+2+8+4+4
+COP_WAITS_SIZE	EQU COP_WAITS*(4+4)
+COP_SIZE_DIFF	EQU 4+4+4+4+4+4
 	ENDC
 ;********** Demo **********	;Demo-specific non-startup code below.
 Demo:			;a4=VBR, a6=Custom Registers Base addr
 	;*--- init ---*
 	MOVE.L	#VBint,$6C(A4)
-	;MOVE.W	#$C020,INTENA
-	MOVE.W	#$87C0,DMACON
+	MOVE.W	#$C020,INTENA
 	MOVE.W	#%1000000000001100,INTENA	; Master and lev6	; NO COPPER-IRQ!
 	;MOVE.W	#%1000011111100000,DMACON
 	;*--- start copper ---*
@@ -59,15 +59,19 @@ Demo:			;a4=VBR, a6=Custom Registers Base addr
 	LEA	COPPER\.BplPtrs+2+40,A1
 	BSR.W	PokePtrs
 
+	IFNE MED_PLAY_ENABLE
+	;MOVE.W	#2,MED_START_POS	 ; skip to pos# after first block
+	MOVE.W	#$87C0,DMACON
+	JSR	_startmusic
+	ENDC
+
 	; #### CPU INTENSIVE TASKS BEFORE STARTING MUSIC	
 	IFNE DYNCOPPER
 	; #### EXTRACT COPPERLISTS  ######
-	LEA	GRADIENT_VALS,A0
+	;LEA	GRADIENT_VALS,A0
 	LEA	COPPER_BUFFER,A1	; COPPER_BUFFER
-	LEA	GRADIENT_REGISTERS,A3
 	LEA	GRADIENT_PTRS,A4
 	MOVE.W	#COP_FRAMES-1,D4
-	LEA	BLUE_COLS,A6
 	.loop2:
 	MOVE.L	A1,(A4)+
 	BSR.W	__DECRUNCH_COPPERLIST
@@ -78,12 +82,7 @@ Demo:			;a4=VBR, a6=Custom Registers Base addr
 	BSR.W	__PREFILLS
 	; #### CPU INTENSIVE TASKS BEFORE STARTING MUSIC
 	LEA	BLUE_COLS,A6
-	IFNE MED_PLAY_ENABLE
-	; in photon's wrapper comment:;move.w d2,$9a(a6) ;INTENA
-	;MOVE.W	#2,MED_START_POS	 ; skip to pos# after first block
-	JSR	_startmusic
-	ENDC
-	;MOVE.L	#Copper\.Palette,COP2LC
+
 	MOVE.L	#COPPER,COP1LC	; ## POINT COPPERLIST ##
 ;********************  main loop  ********************
 MainLoop:
@@ -234,43 +233,62 @@ _PokeCopJmp:
 	MOVE.W	D0,2(A0)		; LOAD HIGH SCR ADDR IN COPPER LIST
 	RTS
 __DECRUNCH_COPPERLIST:
-	; GRADIENT_VALS,A0 		COPPER_BUFFER,A1
-	; GRADIENT_REGISTERS,A3	LEA GRADIENT_PTRS,A4
-	MOVE.W	-2(A6),D5		; IDX
-	ADD.W	-4(A6),D5		; OFFSET
+	LEA	LFO_NOSYNC,A2	; FOR BG
+	LEA	LFO_VIBRO,A0	; FOR TXT
+	MOVE.W	SCROLL_IDX,D1
+	ADD.W	#$2,D1
+	AND.W	#$3F-1,D1
+	MOVE.W	D1,SCROLL_IDX
+	; #####################################################
 	MOVE.W	#COP2LCH,(A1)+	; TO-DO: ADD H-L POINTERS
 	MOVE.W	#$FABE,(A1)+	; TO-DO: ADD H-L POINTERS
 	MOVE.W	#COP2LCL,(A1)+	; TO-DO: ADD H-L POINTERS
 	MOVE.W	#$DEBA,(A1)+	; TO-DO: ADD H-L POINTERS
-	MOVE.W	#COP_WAITS,D7
+	MOVE.B	#$1D,D0		; COP START
+	ADD.B	#FONT_H,D0	; FIRST WAIT
+
+	MOVE.W	#COP_WAITS-1,D7
 	.waitsLoop:
-	TST.B	(A0)+		; ZEROED WORD = allow VPOS>$ff
-	BNE.S	.notFF
-	MOVE.L	#$FFDFFFFE,(A1)+	; allow VPOS>$ff
-	MOVE.B	(A0)+,D0		; DUMMY
-	BRA.S	.skip
-	.notFF:
-	MOVE.B	(A0)+,D0		; FIRST WAIT
 	LSL.W	#8,D0
 	MOVE.B	#$07,D0		; CMD RESTORED $1C07
 	MOVE.W	D0,(A1)+		; WAIT
 	MOVE.W	#$FFFE,(A1)+	; WAIT
-	MOVE.W	#COP_COLS_REGS-1,D6
-	.registersLoop:
-	LSL.W	D6		; ONLY EVEN VALUES
-	MOVE.W	(A3,D6.W),(A1)+	; COLOR REGISTER
-	MOVE.W	(A6,D5.W),(A1)+	; COLOR VALUE
-	ADD.W	#$2,D5		; GLOBAL COLOR IDX
-	LSR.W	D6		; GO BACK TO COUNTER
-	DBRA	D6,.registersLoop
-	;SUB.W	#(COP_COLS_REGS-1)*2,D5
-	SUB.W	#$2,D5		; GLOBAL COLOR IDX
-	AND.W	#$FF,D5		; RESET
-	MOVE.W	D5,-2(A6)		; SAVE
+	LSR.W	#8,D0
+	ADD.B	#$1,D0
+
+	; ## FROM OLD RACE BEAM ##
+	CMP.W	#$57,D0		; 12.032 - #$2F00
+	BNE.S	.keepLFO
+	LEA	LFO_SINE1,A0
+	MOVE.L	#$01820F00,(A1)+	; TIKTOK
+	MOVE.L	#$018400FF,(A1)+	; TIKTOK
+	BRA.S	.keepLFO2
+	.keepLFO:
+	CMP.W	#$B7,D0		; 12.032 - #$2F00
+	BNE.S	.keepLFO2
+	LEA	LFO_SINE2,A0
+	.keepLFO2:
+
+	MOVE.W	#$0102,(A1)+
+	MOVE.W	(A0,D1.W),D3
+
+	ROR.L	#4,D3
+	MOVE.W	(A2,D1.W),D3	; 19DEA68E GLITCHA
+	ROL.L	#4,D3
+
+	MOVE.W	D3,(A1)+
+	ADD.W	#$2,D1
+	AND.W	#$3F-1,D1
 	.skip:
+
+	CMP.W	#$FF,D0		; ZEROED WORD = allow VPOS>$ff
+	BNE.S	.notFF
+	MOVE.W	#$0,D0
+	MOVE.L	#$FFDFFFFE,(A1)+	; allow VPOS>$ff
+	.notFF:
+
 	MOVE.W	D7,$DFF180	; SHOW ACTIVITY
 	DBRA	D7,.waitsLoop
-	ADD.W	#$8,-4(A6)
 	MOVE.L	#$FFFFFFFE,(A1)+	; END COP
 	RTS
 __UpdateAllCopJmps:
@@ -287,29 +305,6 @@ __UpdateAllCopJmps:
 	MOVE.L	D1,D0
 	BSR.W	_PokeCopJmp
 	MOVE.L	D1,COP2LC
-	RTS
-	ENDC
-	IFNE DYNCOPPER
-__BLIT_GRADIENT_IN_COPPER:
-	;MOVE.W	GRADIENT_INDEX,D0
-	;LEA	GRADIENT_PTRS,A3
-	;MOVE.L	(A3,D0.W),A4
-	;ADD.W	#$4,D0
-	;CMP.W	#COP_FRAMES*4-4,D0
-	;BLO.S	.dontReset
-	;MOVE.W	#$0,D0
-	;.dontReset:
-	;MOVE.W	D0,GRADIENT_INDEX
-	;LEA	COPPER\.Waits,A5
-	;MOVE.L	(A4)+,(A5)+	; Trick for alignment ;)
-	;_WaitBlitterNasty
-	;MOVE.L	#$FFFFFFFF,BLTAFWM
-	;MOVE.L	#(%0000100111110000<<16),BLTCON0
-	;MOVE.W	#0,BLTAMOD
-	;MOVE.W	#0,BLTDMOD
-	;MOVE.L	A4,BLTAPTH
-	;MOVE.L	A5,BLTDPTH
-	;MOVE.W	#(COP_WAITS<<6)+COP_BLIT_SIZE,BLTSIZE
 	RTS
 	ENDC
 
@@ -332,7 +327,6 @@ __PREFILLS:
 	MOVE.L	#$00A000AA,(A4)+	; MASK?
 	MOVE.L	#$0000FFFF,(A4)+	; MASK?
 	BSR.W	__FILLSOLID	; SOME DUMMY OPERATION...
-	MOVE.W	#$0F00,$DFF180	; SHOW ACTIVITY
 	LEA	PLANE_3,A4	; FILLS A PLANE
 	BSR.W	__FILLRND		; SOME DUMMY OPERATION...
 	BSR.W	__FILLRND		; SOME DUMMY OPERATION...
@@ -582,7 +576,7 @@ __RACE_BEAM:
 	.waitNextRaster:
 	MOVE.B	VHPOSR,D2
 	BEQ.S	.waitNextRaster
-
+	;BRA.W	.noLine5
 	MOVE.B	VHPOSR,D4		; RACE THE BEAM!
 
 	CMP.B	D0,D2
@@ -649,10 +643,10 @@ __RACE_BEAM_OLD:
 	ADD.W	#$2,D0
 	AND.W	#$3F-1,D0
 	MOVE.W	D0,SCROLL_IDX
-	MOVE.W	BPLMOD_IDX,D5
-	AND.W	#$7F-1,D5
-	SUB.W	#$2,D5
-	MOVE.W	D5,BPLMOD_IDX
+	;MOVE.W	BPLMOD_IDX,D5
+	;AND.W	#$7F-1,D5
+	;SUB.W	#$2,D5
+	;MOVE.W	D5,BPLMOD_IDX
 	CLR.L	D2
 	CLR.L	D7		; SYNC IDX
 	;MOVE.W	VHPOSR,D4		; for bug?
@@ -1031,7 +1025,7 @@ TXT_BODY:		DC.B " PLEASE INSERT A CASSETTE  "
 		DC.B " BUT I DOUBT ANYONE WOULD  "
 		DC.B " EVER EXPECT FROM ME ANY   "
 		DC.B " NON GLITCHY VISUALS!      "
-		DC.B " THIS LITTLE TECHNO TUNE   "
+		DC.B " THIS NASTY TECHNO TUNE    "
 		DC.B " WAS COMPOSED THESE DAYS   "
 		DC.B " WITH OCTAMED SS AND IT    "
 		DC.B " HEAVILY MAKES USE OF MED  "
@@ -1094,6 +1088,8 @@ SCANLINE_IDX1:	DC.B $0
 SCANLINE_IDX2:	DC.B $1
 SCANLINE_IDX3:	DC.B $2
 SCANLINE_IDX4:	DC.B $3
+GRADIENT_PTRS:	DS.L COP_FRAMES
+
 ;*******************************************************************************
 	SECTION	ChipData,DATA_C	;declared data that must be in chipmem
 ;*******************************************************************************
@@ -1103,7 +1099,7 @@ SCANLINE_IDX4:	DC.B $3
 FONT:		INCBIN "VHS_font.raw",0
 		EVEN
 
-MED_MODULE:	INCBIN "med/SYNTECHNO.med"
+MED_MODULE:	INCBIN "med/SYNTECHNO_stripped.med"
 _chipzero:	DC.L 0
 _MED_MODULE:
 
@@ -1120,7 +1116,7 @@ COPPER:	; #### COPPERLIST ####################################################
 
 	.Palette:
 	DC.W $0180,$0001
-	;DC.W $0182,$00D1,$0184,$0F0E	; Managed by CPU
+	DC.W $0182,$00D1,$0184,$0F0E	; Managed by CPU
 	DC.W $0186,$000F
 	DC.W $0188,$0FFF,$018A,$0DEF,$018C,$0DDD,$018E,$0CDE
 
@@ -1169,28 +1165,9 @@ COPPER:	; #### COPPERLIST ####################################################
 	DC.W $FFFF,$FFFE		; magic value to end copperlist
 	ENDC
 
-COPPER2:
-	dc.w COP2LCH,0
-	dc.w COP2LCL,0
-	dc.w $2f07,$fffe
-	dc.w $180,$0fe
-	DC.W COPJMP1,$1		; Force a jump to  COP1LC 
-
-COPPER3:
-	dc.w COP2LCH,0
-	dc.w COP2LCL,0
-	dc.w $2c07,$fffe
-	dc.w $180,$f05
-	DC.W COPJMP1,$1		; Force a jump to  COP1LC 
-
 ;*******************************************************************************
 	SECTION ChipBuffers,BSS_C	;BSS doesn't count toward exe size
 ;*******************************************************************************
-	IFNE DYNCOPPER
-	GRADIENT_PTRS:	DS.L COP_FRAMES
-	COPPER_BUFFER:	DS.W COP_FRAMES*(COP_BLIT_SIZE*COP_WAITS+2+12)	; +2 vpos >$FF
-	ENDC
-
 LINE_BUF:		DS.B LINE_H
 DUMMY_:		DS.B he/8*bypl
 TXT_GRID:		DS.B he*bypl
@@ -1203,4 +1180,8 @@ PLANE_6:		DS.B he*bypl
 PLANE_1:		DS.B he*bypl
 PLANE_2:		DS.B (he+2)*bypl
 DUMMY_1:		DS.B he*8*bypl
+	IFNE DYNCOPPER
+	COPPER_BUFFER:	DS.W COP_FRAMES*(COP_WAITS_SIZE+COP_SIZE_DIFF)
+			DS.L COP_WAITS
+	ENDC
 END
