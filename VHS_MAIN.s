@@ -62,7 +62,7 @@ Demo:			;a4=VBR, a6=Custom Registers Base addr
 	IFNE MED_PLAY_ENABLE
 	;MOVE.W	#2,MED_START_POS	 ; skip to pos# after first block
 	MOVE.W	#$87C0,DMACON
-	JSR	_startmusic
+	;JSR	_startmusic
 	ENDC
 
 	; #### CPU INTENSIVE TASKS BEFORE STARTING MUSIC	
@@ -92,8 +92,10 @@ MainLoop:
 	.skip:
 
 	BSR.W	__RACE_BEAM
-	ADD.B	#$6,SCANLINE_IDX1
-	ADD.B	#$1,SCANLINE_IDX3
+	;ADD.B	#$4,SCANLINE_IDX1
+	;ADD.B	#$3,SCANLINE_IDX2
+	;ADD.B	#$2,SCANLINE_IDX3
+	ADD.B	#$1,SCANLINE_IDX4
 
 	IFNE EPILEPSY
 	BSR.W	__UPDATE_V_LINE
@@ -561,36 +563,34 @@ __RACE_BEAM:
 	MOVE.L	SCANLINE_IDX1,D0
 	MOVE.B	V_LINE_IDX,D6
 	CLR.L	D1		; RESET FLAG
-	;LEA	8(A6),A6
-	;LSR.W	#4,D6
-	;LSR.W	#4,D6
-	;CLR.L	D2
-	;MOVE.W	VHPOSR,D4		; for bug?
-	;.waitVisibleRaster:
-	;MOVE.W	VHPOSR,D4
-	;AND.W	#$FF00,D4		; read vertical beam
-	;CMP.W	#$3700,D4		; 2C
-	;BNE.S	.waitVisibleRaster
+	CLR.L	D2
+	MOVE.W	VHPOSR,D4		; for bug?
+	.waitVisibleRaster:
+	MOVE.W	VHPOSR,D4
+	AND.W	#$FF00,D4		; read vertical beam
+	CMP.W	#$3700,D4		; 2C
+	BNE.S	.waitVisibleRaster
 
 	.dummyWait:
 	MOVE.W	VPOSR,D2		; Read vert most sig. bits
 	BTST	#0,D2
 	BNE.S	.dummyWait
 
+	CLR.W	$100		; DEBUG | w 0 100 2
 	.waitNextRaster:
 	MOVE.B	VHPOSR,D2
 	BEQ.S	.waitNextRaster
-	;BRA.W	.noLine5
+	;BRA.W	.noLine6
 	MOVE.B	VHPOSR,D4		; RACE THE BEAM!
 
 	CMP.B	D0,D2
 	BNE.S	.noLine1
-	LEA	(A1),A0
+	LEA	(A5),A0
 	MOVE.W	(A0)+,$DFF192
 	MOVE.W	(A0)+,$DFF196
 	MOVE.W	(A0)+,$DFF19A
 	MOVE.W	(A0)+,$DFF19E
-	;BRA.W	.noLine4
+	BRA.W	.noLine6
 	.noLine1:
 
 	TST.B	D1
@@ -606,41 +606,42 @@ __RACE_BEAM:
 	SWAP	D0
 	CMP.B	D0,D2
 	BNE.S	.noLine2
-	LEA	(A2),A0
+	;LEA	(A2),A0
+	LEA	(A6),A0
 	MOVE.W	(A0)+,$DFF192
 	MOVE.W	(A0)+,$DFF196
 	MOVE.W	(A0)+,$DFF19A
 	MOVE.W	(A0)+,$DFF19E
-	MOVE.B	#$3,D1
-	;BRA.S	.noLine5
+	MOVE.B	#$1,D1
+	BRA.S	.noLine6
 	.noLine2:
 
 	ROR.L	#4,D0
 	ROR.L	#4,D0
 	CMP.B	D0,D2
 	BNE.S	.noLine3
-	LEA	16(A1),A0
+	LEA	(A4),A0
 	MOVE.W	(A0)+,$DFF192
 	MOVE.W	(A0)+,$DFF196
 	MOVE.W	(A0)+,$DFF19A
 	MOVE.W	(A0)+,$DFF19E
-	;BRA.S	.noLine5
+	BRA.S	.noLine6
 	.noLine3:
 
 	SWAP	D0
 	CMP.B	D0,D2
 	BNE.S	.noLine4
-	LEA	(A5),A0
+	LEA	(A0),A0
 	MOVE.W	(A0)+,$DFF192
 	MOVE.W	(A0)+,$DFF196
 	MOVE.W	(A0)+,$DFF19A
 	MOVE.W	(A0)+,$DFF19E
-	;BRA.S	.noLine5
+	BRA.S	.noLine6
 	.noLine4:
 
 	CMP.B	D6,D2
 	BNE.S	.noLine6
-	LEA	24(A1),A0
+	LEA	16(A1),A0
 	MOVE.W	(A0)+,$DFF192
 	MOVE.W	(A0)+,$DFF196
 	MOVE.W	(A0)+,$DFF19A
@@ -937,6 +938,7 @@ PURPLE_COLS1:
 		DC.W $0204,$0205,$0104,$0205		; BHO
 GREY_COLS1:
 		DC.W $0222,$0444,$0111,$0222
+		DC.W $0322,$0454,$0666,$0221
 		DC.W $0555,$0222,$0333,$0444
 NOIZ_COLS1:
 		DC.W $0BBB,$0667,$0FFF,$0000		; NOIZ
@@ -1038,9 +1040,9 @@ NOISE_COP_PTR3:	DC.L COPPER\.BplPtrs+2+24
 NOISE_COP_PTR5:	DC.L COPPER\.BplPtrs+2+40
 V_LINE_IDX:	DC.B $FF,0
 SCANLINE_IDX1:	DC.B $0
-SCANLINE_IDX2:	DC.B $1
-SCANLINE_IDX3:	DC.B $2
-SCANLINE_IDX4:	DC.B $3
+SCANLINE_IDX2:	DC.B $96
+SCANLINE_IDX3:	DC.B $42
+SCANLINE_IDX4:	DC.B $81
 GRADIENT_PTRS:	DS.L COP_FRAMES
 
 ;*******************************************************************************
