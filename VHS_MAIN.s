@@ -88,7 +88,7 @@ Demo:			;a4=VBR, a6=Custom Registers Base addr
 MainLoop:
 	BTST	#6,$BFE001		; POTINP - LMB pressed?
 	BNE.S	.skip
-	LEA	PURPLE_COLS1,A6
+	LEA	BLUE_COLS1\.offSet,A6
 	MOVE.L	#$0,SCANLINE_IDX1
 	.skip:
 
@@ -96,7 +96,7 @@ MainLoop:
 	;ADD.B	#$2,SCANLINE_IDX1
 	;ADD.B	#$3,SCANLINE_IDX2
 	;ADD.B	#$1,SCANLINE_IDX3
-	;ADD.B	#$1,SCANLINE_IDX4
+	ADD.B	#$1,SCANLINE_IDX4
 
 	CMP.L	#_COLORS_END,A6
 	BLO.S	.dontResetColors
@@ -121,7 +121,7 @@ MainLoop:
 
 	ADD.B	#$A,SCANLINE_IDX1
 	ADD.B	#$7,SCANLINE_IDX2
-	ADD.B	#$5,SCANLINE_IDX4
+	;ADD.B	#$5,SCANLINE_IDX4
 	ADD.B	#$B,SCANLINE_IDX3
 	;MOVE.L	#$000F030A,$DFF182		; BLUE
 	MOVE.L	#$0F0000FF,$DFF182		; TIKTOK
@@ -147,7 +147,7 @@ MainLoop:
 
 	ADD.B	#$9,SCANLINE_IDX1
 	ADD.B	#$6,SCANLINE_IDX2
-	ADD.B	#$4,SCANLINE_IDX4
+	;ADD.B	#$4,SCANLINE_IDX4
 	ADD.B	#$C,SCANLINE_IDX3
 	;MOVE.L	#$010A000E,$DFF182		; BLUE
 	MOVE.L	#$0F0700F5,$DFF182		; G+P
@@ -514,7 +514,7 @@ __FILLSOLID:
 	.outerloop:		; NUOVA RIGA
 	MOVE.L	#-1,D0		; ALL BITS
 	IFNE EPILEPSY
-	BSR.W	__RND\._byte
+	;BSR.W	__RND\._byte
 	ENDC
 	AND.W	#$F000,D5
 	CMP.W	#$A000,D5
@@ -569,87 +569,85 @@ __RACE_BEAM:
 	;LEA	GREEN_COLS1,A4
 	;LEA	PURPLE_COLS1,A5
 	;LEA	GREY_COLS1,A6
-	MOVE.L	SCANLINE_IDX1,D0
+	MOVE.B	SCANLINE_IDX1,D1
+	MOVE.B	SCANLINE_IDX2,D2
+	MOVE.B	SCANLINE_IDX3,D3
+	MOVE.B	SCANLINE_IDX4,D4
 	MOVE.B	V_LINE_IDX,D6
 	;CLR.L	D1		; RESET FLAG
-	;CLR.L	D2
-	;MOVE.W	VHPOSR,D4		; for bug?
+	;CLR.L	D7
+	;MOVE.W	VHPOSR,D0		; for bug?
 	;.waitVisibleRaster:
-	;MOVE.W	VHPOSR,D4
-	;AND.W	#$FF00,D4		; read vertical beam
-	;CMP.W	#$3700,D4		; 2C
+	;MOVE.W	VHPOSR,D0
+	;AND.W	#$FF00,D0		; read vertical beam
+	;CMP.W	#$3700,D0		; 2C
 	;BNE.S	.waitVisibleRaster
 	.dummyWait:
-	MOVE.W	VPOSR,D2		; Read vert most sig. bits
-	BTST	#0,D2
+	MOVE.W	VPOSR,D7		; Read vert most sig. bits
+	BTST	#0,D7
 	BNE.S	.dummyWait
 
-	CLR.W	$100		; DEBUG | w 0 100 2
 	.waitNextRaster:
-	MOVE.B	VHPOSR,D2
+	MOVE.B	VHPOSR,D7
 	BEQ.S	.waitNextRaster
 	;BRA.W	.noLine4
-	MOVE.B	VHPOSR,D4		; RACE THE BEAM!
+	MOVE.B	VHPOSR,D0		; RACE THE BEAM!
 
-	CMP.B	D6,D2
+	CMP.B	D6,D7
 	BNE.S	.noLine6
 	;MOVE.W	#$0F0F,$DFF180
-	MOVE.W	-(A6),$DFF192
-	MOVE.W	-(A6),$DFF196
-	MOVE.W	-(A6),$DFF19A
-	MOVE.W	-(A6),$DFF19E
-	BRA.W	.noLine4
+	MOVE.W	(A6)+,$DFF192
+	MOVE.W	(A6)+,$DFF196
+	MOVE.W	(A6)+,$DFF19A
+	MOVE.W	(A6)+,$DFF19E
+	BRA.S	.waitNextRaster
 	.noLine6:
 
-	CMP.B	D0,D2
+	CMP.B	D1,D7
 	BNE.S	.noLine1
 	;MOVE.W	#$000F,$DFF180
-	MOVE.W	(A6)+,$DFF192
-	MOVE.W	(A6)+,$DFF196
-	MOVE.W	(A6)+,$DFF19A
-	MOVE.W	(A6)+,$DFF19E
-	BRA.S	.noLine4
+	MOVE.W	-(A6),$DFF192
+	MOVE.W	-(A6),$DFF196
+	MOVE.W	-(A6),$DFF19A
+	MOVE.W	-(A6),$DFF19E
+	BRA.S	.waitNextRaster
 	.noLine1:
 
-	SWAP	D0
-	CMP.B	D0,D2
+	CMP.B	D2,D7
 	BNE.S	.noLine2
 	;MOVE.W	#$00F0,$DFF180
-	MOVE.W	-(A6),$DFF192
-	MOVE.W	-(A6),$DFF196
-	MOVE.W	-(A6),$DFF19A
-	MOVE.W	-(A6),$DFF19E
-	BRA.S	.noLine4
-	.noLine2:
-
-	ROR.L	#4,D0
-	ROR.L	#4,D0
-	CMP.B	D0,D2
-	BNE.S	.noLine3
-	;MOVE.W	#$0F00,$DFF180
 	MOVE.W	(A6)+,$DFF192
 	MOVE.W	(A6)+,$DFF196
 	MOVE.W	(A6)+,$DFF19A
 	MOVE.W	(A6)+,$DFF19E
-	BRA.S	.noLine4
-	.noLine3:
+	BRA.W	.waitNextRaster
+	.noLine2:
 
-	SWAP	D0
-	CMP.B	D0,D2
-	BNE.S	.noLine4
-	;MOVE.W	#$00FF,$DFF180
+	CMP.B	D3,D7
+	BNE.S	.noLine3
+	;MOVE.W	#$0F00,$DFF180
 	MOVE.W	-(A6),$DFF192
 	MOVE.W	-(A6),$DFF196
 	MOVE.W	-(A6),$DFF19A
 	MOVE.W	-(A6),$DFF19E
-	;BRA.S	.noLine6
+	BRA.W	.waitNextRaster
+	.noLine3:
+
+	CMP.B	D4,D7
+	BNE.S	.noLine4
+	;MOVE.W	#$00FF,$DFF180
+	MOVE.W	(A6)+,$DFF192
+	MOVE.W	(A6)+,$DFF196
+	MOVE.W	(A6)+,$DFF19A
+	MOVE.W	(A6)+,$DFF19E
+	BRA.W	.waitNextRaster
 	.noLine4:
 
-	MOVE.W	VPOSR,D2		; Read vert most sig. bits
-	BTST	#0,D2
+	MOVE.W	VPOSR,D7		; Read vert most sig. bits
+	BTST	#0,D7
 	BEQ.W	.waitNextRaster
 
-	CMP.B	#$1F,D2		; 12.032
+	CMP.B	#$1F,D7		; 12.032
 	BEQ.W	.waitNextRaster
 	RTS
 
