@@ -186,7 +186,7 @@ MainLoop:
 	; ## UPDATE POINTERS ##
 	.evenFrame:			; ###########
 
-	BSR.W	__WIPE_TEST
+	BSR.W	__BLIT_NOISE
 
 	;.WaitRasterCopper:
 	;;MOVE.W	#$0A0F,$DFF180	; show rastertime left down to $12c
@@ -874,7 +874,7 @@ __UPDATE_V_LINE:
 	LEA	PLANE2,A0
 	MOVE.W	A0,(A1)
 	.skip:
-	;SUB.W	#$42,(a1)
+	SUB.W	#$42,(a1)
 	RTS
 
 __FETCH_LETTER:
@@ -994,10 +994,10 @@ __WIPE_HEADER:
 	BSR.W	_WipeMEM
 	RTS
 
-__WIPE_TEST:
-	LEA	PLANE2,A4
-	ADD.L	#he/6*4*bypl,A4
-	LEA	(A4),A5
+__BLIT_NOISE:
+	LEA	PLANE2,A5
+	ADD.L	#he/6*4*bypl,A5
+	LEA	(A5),A4
 	MOVE.W	#%0000100111110000,BLTCON0	; BLTCON0
 	MOVE.W	#%0000000000000000,BLTCON1	; BLTCON1
 	MOVE.L	SCANLINE_IDX1,D0		; BLTAFWM
@@ -1006,7 +1006,7 @@ __WIPE_TEST:
 	MOVE.W	D0,BLTAMOD		; Init modulo Dest D
 	;SWAP	D0
 	LSR.W	#2,D0
-	SUB.L	D0,A5
+	SUB.L	D0,A4
 	MOVE.W	#40,BLTDMOD		; Init modulo Dest D
 	MOVE.L	A5,BLTAPTH
 	MOVE.L	A4,BLTDPTH
