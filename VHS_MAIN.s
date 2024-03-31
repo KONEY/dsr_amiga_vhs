@@ -96,11 +96,11 @@ MainLoop:
 
 	ADD.W	#$8,SCANLINE_IDX1
 	ADD.W	#$7,SCANLINE_IDX2
-	ADD.W	#$8,SCANLINE_IDX3
-	SUB.W	#$2,SCANLINE_IDX0
-	ADD.W	#$7,SCANLINE_IDX4
-	ADD.W	#$6,SCANLINE_IDX5
-	ADD.W	#$6,SCANLINE_IDX6
+	ADD.W	#$9,SCANLINE_IDX3
+	ADD.W	#$3,SCANLINE_IDX0
+	ADD.W	#$6,SCANLINE_IDX4
+	ADD.W	#$2,SCANLINE_IDX5
+	ADD.W	#$2,SCANLINE_IDX6
 
 	CMP.L	#_COLORS_END,A6
 	BLO.S	.dontResetColors
@@ -176,7 +176,7 @@ MainLoop:
 	MOVE.L	(A0),D1
 	BSR.W	PokePtrs
 	SWAP	D1
-	MOVE.L	D1,(A0)		; Clear the inital mess?
+	MOVE.L	D1,(A0)			; Clear the inital mess?
 	ENDC
 	MOVEM.L	NOISE_COP_PTR3(PC),A0-A1
 	EXG	A0,A1
@@ -641,6 +641,7 @@ __RACE_BEAM:
 	BEQ.S	.waitNextRaster
 	;MOVE.W	#$8080,DMACON	; ENABLE COPDMA
 	;MOVE.B	VHPOSR,D0		; RACE THE BEAM!
+	;SUB.B	#$2C,D7		; TO MATCH COPPER
 	CMP.B	D0,D7
 	BNE.S	.noLine0
 	;MOVE.W	#$0F0F,$DFF180
@@ -704,7 +705,7 @@ __RACE_BEAM:
 	BRA.W	.waitNextRaster
 	.noLine4:
 
-	CMP.B	D5,D7
+	CMP.B	D5,D7		; ENTANGLED
 	BNE.S	.noLine5
 	;MOVE.W	#$0,BPL2MOD
 	;MOVE.W	D5,BPL2MOD
@@ -712,18 +713,20 @@ __RACE_BEAM:
 	;MOVE.W	#$80,DMACON	; DISABLE COPDMA
 	;MOVE.W	(A6),$DFF18E
 	;MOVE.W	2(A6),$DFF18C
-	;MOVE.W	#$0999,$DFF192
+	;MOVE.W	#$0DDD,$DFF192
 	;MOVE.W	#$0000,$DFF196
-	;MOVE.W	#$0333,$DFF19A
+	;MOVE.W	#$0222,$DFF19A
 	;MOVE.W	#$0FFF,$DFF19E
-	;MOVE.W	40(A6),$DFF192
-	;MOVE.W	42(A6),$DFF196
-	;MOVE.W	44(A6),$DFF19A
-	;MOVE.W	46(A6),$DFF19E
+	;MOVE.W	40(A6),$DFF196
+	;MOVE.W	42(A6),$DFF19E
+	MOVE.W	40(A6),$DFF182
+	MOVE.W	42(A6),$DFF184
+	MOVE.W	44(A6),$DFF188
+	MOVE.W	46(A6),$DFF18E	; CHANGE TEXT COLOR
 	BRA.W	.waitNextRaster
 	.noLine5:
 
-	CMP.B	D6,D7
+	CMP.B	D6,D7		; ENTANGLED
 	BNE.S	.noLine6
 	;MOVE.W	#$0,BPL2MOD
 	MOVE.W	#$1,BPLCON1	; HW SCROLL
@@ -734,6 +737,8 @@ __RACE_BEAM:
 	MOVE.W	18(A6),$DFF196
 	MOVE.W	20(A6),$DFF19A
 	MOVE.W	22(A6),$DFF19E
+	MOVE.W	#$0CCC,$DFF188
+	MOVE.W	#$0BCD,$DFF18E	; REVERT TEXT COLOR
 	BRA.W	.waitNextRaster
 	.noLine6:
 
@@ -1025,7 +1030,7 @@ __BLIT_NOISE:
 
 __STATIC_NOISE:
 	BSR.W	__RND
-	LEA	MED_MODULE,A1
+	LEA	_MED_MODULE,A1
 	LEA	PLANE2,A0
 	ADD.L	#he*bypl-2-bypl,A0
 	BSR.W	BlitterFill
@@ -1060,100 +1065,6 @@ __RESET_BODY:
 	BNE.S	.skip
 	MOVE.W	#$0,(A0)
 	.skip:
-	RTS
-
-DrawLine:
-	SUB.W	d0,d2		; D2 = Dx = X1 - X2
-	BMI.B	.Oct2345		; Nagative? Octant could be 2,3,4,5
-	SUB.W	d1,d3		; D3 = Dy = Y1 - Y2 
-	BMI.B	.Oct01		; Negative? Octant is 0 or 1
-	CMP.W	d3,d2		; Compare Dy with Dx
-	BMI.B	.Oct6		; Dy > Dx? Octant 6!
-	MOVEQ	#$0011,d4		; Select LINE + octant 7!
-	BRA.B	.DoneOctant
-
-	.Oct6:
-	EXG	d2,d3		; Ensure D2=Dmax and D3=Dmin
-	MOVEQ	#$0001,d4		; Select LINE + octant 6
-	BRA.B	.DoneOctant
-
-	.Oct2345:
-	NEG.W	d2		; Make Dx positive 
-	SUB.W	d1,d3		; D3 = Dy = Y1 - Y2
-	BMI.B	.Oct23		; Negative? Octant is 2 or 3
-	CMP.W	d3,d2		; Compare Dy with Dx
-	BMI.B	.Oct5		; Dy > Dx? Octant 5!
-	MOVEQ	#$0015,d4		; Select LINE + octant 4
-	BRA.B	.DoneOctant
-
-	.Oct5:
-	EXG	d2,d3		; Ensure D2=Dmax and D3=Dmin
-	MOVEQ	#$0009,d4		; Select LINE + octant 5
-	BRA.B	.DoneOctant
-
-	.Oct23:
-	NEG.W	d3		; Make Dy positive
-	CMP.W	d3,d2		; Compare Dy with Dx
-	BMI.B	.Oct2		; Dy > Dx? Octant 2!
-	MOVEQ	#$001D,d4		; Select LINE + octant 3
-	BRA.B	.DoneOctant
-
-	.Oct2:
-	EXG	d2,d3		; Ensure D2=Dmax and D3=Dmin
-	MOVEQ	#$000D,d4		; Select LINE + octant 2
-	BRA.B	.DoneOctant
-
-	.Oct01:
-	NEG.W	d3		; Make Dy positive
-	CMP.W	d3,d2		; Compare Dy with Dx
-	BMI.B	.Oct1		; Dy > Dx? Octant 1!
-	MOVEQ	#$0019,d4		; Select LINE + octant 0
-	BRA.B	.DoneOctant
-
-	.Oct1:
-	EXG	d2,d3		; Ensure D2=Dmax and D3=Dmin
-	MOVEQ	#$0005,d4		; Select LINE + octant 1
-
-	.DoneOctant:
-	ADD.W	d2,d2		; D2 = 2 * Dmax	
-	ASL.W	#2,d3		; D3 = 4 * Dmin
-
-	MULU	#40,d1		; Convert Y1 pos into offset
-	ADD.L	d1,a0		; Add ofset to bitplane pointer
-	EXT.L	d0		; Clear top bits of D0
-	ROR.L	#4,d0		; Roll shift bits to top word 
-	ADD.W	d0,d0		; Bottom word: convert to byte offset 
-	ADDA.W	d0,a0		; Add byte offset to bitplane pointer
-	SWAP	d0		; Move shift value to bottom word
-	OR.W	#$0B5A,d0		; USEA, C and D. Minterm $5A, D=A/C+/AC
-
-	MOVE.W	d2,d1		; D1 = 2 * Dmax
-	LSL.W	#5,d1		; Shift Dmax to Hx pos for BLTSIZE
-	ADD.W	#$0042,d1		; Add 1 to Hx and set Wx to 2
-
-	BSR	WaitBlitter
-
-	MOVE.W	#$FFFF,BLTAFWM	; No first word masking
-	MOVE.W	#$FFFF,BLTALWM	; No last word masking
-	MOVE.W	#40,BLTCMOD	; Bitplane is 40 bytes wide
-	MOVE.W	#40,BLTDMOD	; Bitplane is 40 bytes wide
-	MOVE.L	a0,BLTCPTH	; Source C = bitplane to draw on
-	MOVE.L	a0,BLTDPTH	; Destination = bitplane to draw on
-	MOVE.W	d0,BLTCON0	; Source A shift and logic function
-	MOVE.W	d3,BLTBMOD	; Set 4 * Dmin
-	MOVE.W	#$8000,BLTADAT	; A data = 0x8000 (write to BLTCON0 first!)
-	MOVE.W	#$FFFF,BLTBDAT
-
-	SUB.W	d2,d3		; D3 = (2 * Dmax)-(4 * Dmin)
-	EXT.L	d3		; Make full long sized
-	MOVE.L	d3,BLTAPTL	; Store in A pointer
-	BPL.B	.NotNeg		; Skip if positive
-	OR.W	#$0040,d4		; Set SIGN bit if negative
-	.NotNeg:
-	MOVE.W	d4,BLTCON1	; Octant selection, SIGN and LINE
-	SUB.W	d2,d3		; D2 = (2*Dmax), D3 = (2*Dmax)-(4*Dmin)
-	MOVE.W	d3,BLTAMOD	; D3 = 4 * (DMax - Dmin)
-	MOVE.W	d1,BLTSIZE	; Set length and start the Blitter
 	RTS
 
 FRAME_STROBE:	DC.B 0,0
@@ -1310,6 +1221,20 @@ TXT_BODY:		DC.B " PLEASE INSERT A CASSETTE  "
 		DC.B " BLOCK TO MINIMIZE SCORE   "
 		DC.B " SIZE EVEN MORE!           "
 		DC.B " PT TOY WOULDN'T ALLOW IT  "
+		DC.B " AS I TYPE REVISON 24 IS   "
+		DC.B " TAKING PLACE AND AGAIN I  "
+		DC.B " COULDN'T ATTEND IT :(     "
+		DC.B " MAIN PROBLEM IS REACHING  "
+		DC.B " THE PLACE LEAVING FROM    "
+		DC.B " VENICE... it TAKES ONE    "
+		DC.B " FULL DAY BETWEEN TRAINS   "
+		DC.B " AND FLIGHTS... TOO BAD..  "
+		DC.B " ANYWAY NEXT WEEK I'LL BE  "
+		DC.B " RUNNING ALL NEW PRODS ON  "
+		DC.B " MY AMIGA 1000! SO COOL!   "
+		DC.B "     REAL IRON RULEZ!      "
+		DC.B " GREETINGS TIME NOW -----  "
+		DC.B " RAMON/DSR AND ALL DESIRE  "
 		DC.B " REWIND...                 "
 		DC.B "  - - - - - - - - - - - -  "
 		DC.W $0
@@ -1367,7 +1292,7 @@ SCANLINE_IDX2:	DC.W $60
 SCANLINE_IDX3:	DC.W $70	; WHEN MEETS 0 1&2 ARE ENTAGLED
 SCANLINE_IDX4:	DC.W $80
 SCANLINE_IDX5:	DC.W $0	; ENTANGLED
-SCANLINE_IDX6:	DC.W $F	; ENTANGLED
+SCANLINE_IDX6:	DC.W $9	; ENTANGLED
 GRADIENT_PTRS:	DS.L COP_FRAMES
 
 ;*******************************************************************************
