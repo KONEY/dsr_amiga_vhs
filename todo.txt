@@ -1,5 +1,4 @@
 All lines from 0 + reset
-add line d7
 reset compjmp1
 vpos on beam racing
 bg random hw scroll
