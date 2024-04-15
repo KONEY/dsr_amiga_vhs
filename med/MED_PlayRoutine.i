@@ -961,6 +961,7 @@ _IntHandler:	;MOVE.W	#$0F0,$DFF180		; show rastertime left down to $12c
 	; -------- THE REST... ---------------------------------------------------
 	IFNE SONG_POS_TRACKING
 		MOVE.W	mmd_pseqnum(A2),MED_SONG_POS	;SONG POSITION | KONEY
+		MOVE.W	mmd_psecnum(A2),MED_SECT_POS	;FOR THIS TRACK| KONEY
 	ENDC
 	IFNE BLOCK_LINE_TRACKING
 		MOVE.W	mmd_pline(A2),MED_BLOCK_LINE	;LINE POSITION | KONEY
@@ -2784,6 +2785,7 @@ MED_START_POS:	DC.W 0		; staRTS at...
 	ENDC
 	IFNE SONG_POS_TRACKING
 MED_SONG_POS:	DC.W 0		; Well the position...
+MED_SECT_POS:	DC.W 0		; ONLY FOR THIS PROJECT
 	ENDC
 	IFNE BLOCK_LINE_TRACKING
 MED_BLOCK_LINE:	DC.W 0		; Line of block
