@@ -94,13 +94,13 @@ MainLoop:
 	MOVE.L	(A3,D5),A4	; THANKS HEDGEHOG!!
 	JSR	(A4)		; EXECUTE SUBROUTINE BLOCK#
 
-	BTST	#6,$BFE001		; POTINP - LMB pressed?
-	BNE.S	.skip
-	;LEA	DB,A0
-	;MOVEA.L	_module-DB(A0),A2
-	;MOVE.W	mmd_psecnum(A2),D0	;get play sequence number
-	;CLR.W	$100		; DEBUG | w 0 100 2
-	.skip:
+	;BTST	#6,$BFE001		; POTINP - LMB pressed?
+	;BNE.S	.skip
+	;;LEA	DB,A0
+	;;MOVEA.L	_module-DB(A0),A2
+	;;MOVE.W	mmd_psecnum(A2),D0	;get play sequence number
+	;;CLR.W	$100		; DEBUG | w 0 100 2
+	;.skip:
 
 	BSR.W	__RACE_THE_BEAM
 
@@ -748,7 +748,7 @@ __PREFILLS_BPLS:
 	LEA	PLANE5,A4		; FILLS A PLANE
 	BSR.W	__PXLX2_PLANE	; SOME DUMMY OPERATION...
 	BSR.W	__PXLX2_PLANE	; SOME DUMMY OPERATION...
-	LEA	DUMMY1,A4	;	 FILLS A PLANE
+	LEA	DUMMY1,A4		; FILLS A PLANE
 	BSR.W	__FILLRND		; SOME DUMMY OPERATION...
 	;BSR.W	__FILLRND		; SOME DUMMY OPERATION...
 	; ### PREFILLS ###############
@@ -1226,11 +1226,11 @@ TXT_BODY:		DC.B " PLEASE INSERT A CASSETTE  "
 		DC.B "     REAL IRON RULEZ!      "
 		DC.B " GREETINGS TIME NOW -----  "
 		DC.B " RAMON/DSR AND ALL DESIRE  "
-  		DC.B " PHOTON/SCOOPEX      "
+		DC.B " PHOTON/SCOOPEX      "
 		DC.B " DANSCOTT/LEMON FROM EAB   "
 		DC.B " FOR SUGGESTING A BLITTER  "
-  		DC.B " TRICK TO GENERATE NOIZE   "
-    		DC.B " NO MORE BYTES FOR TXT SO  "
+		DC.B " TRICK TO GENERATE NOIZE   "
+		DC.B " NO MORE BYTES FOR TXT SO  "
 		DC.B " REWIND...                 "
 		DC.W $0
 TXT_FOOTER:	DC.B " TRACKING                  "
