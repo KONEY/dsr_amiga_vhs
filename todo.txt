@@ -1,5 +1,5 @@
 #All lines from 0 + reset
-reset compjmp1
+#reset compjmp1
 vpos on beam racing
 bg random hw scroll
 some ramond lines on filled bg
