@@ -194,10 +194,12 @@ MainLoop:
 
 ;********** Demo Routines **********
 PokePtrs:				; EVEN SHRUNKER REFACTOR! :)
-	MOVE.L	A0,(A0)		; Needs EMPTY plane to write addr
-	MOVE.W	(A0),(A1)		; high word of address
-	MOVE.W	A0,4(A1)		; low word of address
-	;CLR.L	(A0)		; Clear the inital mess?
+	;MOVE.L	A0,(A0)		; Needs EMPTY plane to write addr
+	;MOVE.W	(A0),(A1)		; high word of address
+	;MOVE.W	A0,4(A1)		; low word of address
+	MOVE.L	A0,-(SP)		; Needs EMPTY plane to write addr
+	MOVE.W	(SP)+,(A1)	; high word of address
+	MOVE.W	(SP)+,4(A1)	; low word of address
 	RTS
 
 VBint:				; Blank template VERTB interrupt
