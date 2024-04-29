@@ -186,8 +186,8 @@ MainLoop:
 	.evenFrame:			; ###########
 
 	;*--- main loop end ---*
-	;BTST	#6,$BFE001	; POTINP - LMB pressed?
-	;BEQ.W	.exit
+	BTST	#6,$BFE001	; POTINP - LMB pressed?
+	BEQ.W	.exit
 	BTST	#2,$DFF016	; POTINP - RMB pressed?
 	BNE.W	MainLoop		; then loop
 	;*--- exit ---*
