@@ -919,10 +919,7 @@ __PREFILLS_BPLS:
 	BSR.W	__PXLX2_PLANE	; SOME DUMMY OPERATION...
 	BSR.W	__PXLX2_PLANE	; SOME DUMMY OPERATION...
 	LEA	DUMMY1,A4		; FILLS A PLANE
-	BSR.W	__FILLRND		; SOME DUMMY OPERATION...
-	BSR.W	__FILLRND		; SOME DUMMY OPERATION...
-	BSR.W	__FILLRND		; SOME DUMMY OPERATION...
-	BSR.W	__FILLRND		; SOME DUMMY OPERATION...
+	BSR.W	__FILLRND		; x9!
 	BSR.W	__FILLRND		; SOME DUMMY OPERATION...
 	BSR.W	__FILLRND		; SOME DUMMY OPERATION...
 	BSR.W	__FILLRND		; SOME DUMMY OPERATION...
@@ -1495,13 +1492,13 @@ SCANLINE_IDX3:	DC.W $00
 SCANLINE_IDX4:	DC.W $00	; ENTANGLED + GOING UP
 SCANLINE_IDX5:	DC.W $05	; ENTANGLED + GOING UP
 SCANLINE_IDX6:	DC.W $01
-GRADIENT_PTRS:	DS.L COP_FRAMES
 
 ;*******************************************************************************
 	SECTION	ChipData,DATA_C	;declared data that must be in chipmem
 ;*******************************************************************************
-		DS.B he/4*bypl		; For PointPtr...
-		DS.B he*bypl		; For PointPtr...
+GRADIENT_PTRS:	DS.L COP_FRAMES*2
+		;DS.B he/32*bypl		; For PointPtr...
+		;DS.B he*bypl		; For PointPtr...
 
 FONT:		INCBIN "VHS_font.raw",0
 		EVEN
@@ -1528,7 +1525,6 @@ SPRT_DSR_L:
 	DC.W $07BF,$FFFF
 	DC.W $0780,$FFFF
 	DC.L 0
-
 SPRT_DSR_R:	
 	DC.B $06,$D5,$06+$F+$1,%00000110
 	DC.W $6000,$FFFF
@@ -1620,14 +1616,13 @@ LINE_BUF:		DS.B LINE_H
 DUMMY:		DS.B he/8*bypl
 TXT_GRID:		DS.B he*bypl
 DUMMY0:		DS.B he/8*bypl
-;TXT_SCROLBUF:	DS.B (bypl+1)*FONT_H
 PLANE3:		DS.B he*bypl	; NOIZE
 PLANE4:		DS.B he*bypl
 PLANE5:		DS.B he*bypl	; NOIZE
 PLANE6:		DS.B he*bypl
 PLANE1:		DS.B he*bypl
 PLANE2:		DS.B (he+2)*bypl
-DUMMY1:		DS.B he*12*bypl
+DUMMY1:		DS.B he*9*bypl
 	IFNE DYNCOPPER
 	COPPER_BUFFER:	DS.W COP_FRAMES*(COP_WAITS_SIZE+COP_SIZE_DIFF)
 			DS.L COP_WAITS
