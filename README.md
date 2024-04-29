@@ -1,3 +1,7 @@
+![Preview](https://github.com/KONEY/vhs_fx_amiga/blob/master/MATERIALS/AMIGA_VHS_PREVIEW.png)
+
+
+
        __________
        |      __/          ______________                     ___________
 _______| _    /____________\     ___    /______ __________  _/   ___    /
