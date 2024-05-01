@@ -96,7 +96,6 @@ Demo:			;a4=VBR, a6=Custom Registers Base addr
 	LEA	SPRT_DSR_R,A0
 	LEA	COPPER\.SpritePointers+2+24,A1
 	BSR.W	PokePtrs
-	MOVE.L	#COPPER,COP1LC	; ## POINT COPPERLIST ##
 
 	; #### CPU INTENSIVE TASKS BEFORE STARTING MUSIC
 	IFNE DYNCOPPER
@@ -114,18 +113,17 @@ Demo:			;a4=VBR, a6=Custom Registers Base addr
 	DBRA	D4,.loop2
 	BSR.W	__UpdateAllCopJmps
 	ENDC
-	BSR.W	__PREFILLS_BPLS
 	BSR.W	__PREFILLS_COLORS
+	BSR.W	__PREFILLS_BPLS
 	BSR.W	__PREFILLS_TXT
 	; #### CPU INTENSIVE TASKS BEFORE STARTING MUSIC
-
 	IFNE MED_PLAY_ENABLE
 	;MOVE.W	#2,MED_START_POS		; skip to pos# after first block
 	MOVE.W	#%1000000000001100,INTENA	; Master and lev6	; NO COPPER-IRQ!
 	JSR	_startmusic
 	ENDC
-
 	LEA	PREFILLED_COLORS_BLUE0,A6
+	MOVE.L	#COPPER,COP1LC	; ## POINT COPPERLIST ##
 ;********************  main loop  ********************
 MainLoop:
 	;BTST	#6,$BFE001	; POTINP - LMB pressed?
@@ -1419,23 +1417,37 @@ TXT_BODY:		DC.B " PLEASE INSERT A CASSETTE  "
 		DC.B "    CODE/MUSIC/GFX BY      "
 		DC.B "        KONEY/DSR          "
 		DC.B "         LOGO BY           "
-		DC.B "       STEFFEST/DSR        "
+		DC.B "      STEFFEST/DSR         "
+		DC.B "        ASCII BY           "
+		DC.B "         NE7/DSR           "
 		DC.B "  ALL VHS FX BY AMIGA HW   "
 		DC.B "  IN ORDER TO LEAVE CPU    "
 		DC.B "  FREE TO RACE THE BEAM!   "
 		DC.B "  THESE HARDWARE TRICKS    "
-		DC.B " WERE USED IN THIS INTRO:  "
-		DC.B "   *  DUAL PLAYFIELD *     "
+		DC.B " ARE USED IN THIS INTRO:   "
+		DC.B "   * DUAL PLAYFIELDS *     "
 		DC.B "   *   BEAM RACING   *     "
 		DC.B "   * HARDWARE SCROLL *     "
 		DC.B "   *  COPPER JUMPS   *     "
 		DC.B "   *  BLITTER COPY   *     "
 		DC.B "   * HARDWARE SPRITE *     "
+		; ### TECHNOBABBLE ###############
 		DC.B "   *     MODE-7      *     "
-		DC.B "  * QUANTUM COMPUTING *    "
-		DC.B "   *  FLUX-CAPACITOR  *    "
+		DC.B "   *   WARP DRIVE    *     "
+		DC.B "  *  FLUX-CAPACITOR  *     "
+		DC.B "  *  PROTON REACTOR  *     "
+		DC.B "  * POSITRONIC VBLANKS  *  "
+		DC.B "  * PHOTONIC COMPUTING  *  "
+		DC.B "  * OPTICAL MEMRESISTOR *  "
+		DC.B "  *  FTL CPU OVERCLOCK  *  "
+		DC.B "  * OPTRONIC ITERATION  *  "
+		DC.B " * DECOUPLED DATA FETCH *  "
+		DC.B " * QUANTUM ENTANGLEMENT *  "
+		DC.B " * RADIAL RAY DMA SHIFT *  "
 		DC.B " * PARTICLE ACCELERATOR *  "
-		DC.B "    *   WARP DRIVE  *      "
+		DC.B " * NEURAL RAM COLLIDER  *  "
+		; ### TECHNOBABBLE ###############
+		DC.B " AND MORE TECHNOBABBLE :)  "
 		DC.B " I JUST REALIZED NOW WHAT  "
 		DC.B " A PITA IT IS TO TYPE      "
 		DC.B " MAX 26 CHARS PER LINE...  "
