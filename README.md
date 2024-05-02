@@ -1,5 +1,10 @@
-![Preview](https://github.com/KONEY/vhs_fx_amiga/blob/master/MATERIALS/AMIGA_VHS_PREVIEW.png)
+DESiRE Presents: AMIGA VHS
 
+OCS 40k intro, with a Techno vibe!
+
+CODE/GFX/MUSIC: KONEY
+
+![Preview](https://github.com/KONEY/vhs_fx_amiga/blob/master/MATERIALS/AMIGA_VHS_PREVIEW.png)
 
 
        __________
